@@ -1,0 +1,238 @@
+﻿@using Utility
+@model List<Models.ViewModels.AdminSubscriptionView>
+@{
+    ViewData["Title"] = "تعديل الاشتراكات";
+
+    var daysOfWeek = Enum.GetValues(typeof(Days)).Cast<Days>();
+    var translations = DaysOfWeekTranslations.Translations;
+    var errormassages = (string?)TempData["ErrorMessage"];
+    var spliterror = errormassages == null ? null : errormassages.Split("<br/>");
+}
+
+<!-- Status Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+        <span class="me-auto">@TempData["SuccessMessage"]</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (spliterror != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+        @foreach (var massage in spliterror)
+        {
+            <br />
+            <span class="me-auto">@massage</span>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="container mt-5 mb-5">
+    <h2 class="text-center mb-4">تعديل الاشتراكات</h2>
+
+    @foreach (var subscription in Model)
+    {
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">                
+                <button class="btn" type="button" data-bs-toggle="collapse" data-bs-target="#subscription-@subscription.SubscriptionId" aria-expanded="false">
+                    <h5 class="mb-0">@subscription.SubscriptionName</h5>
+                </button>
+            </div>
+            <div id="subscription-@subscription.SubscriptionId" class="collapse">
+                <div class="card-body">
+                    <form asp-action="SaveEditSubscription" method="post">
+                        <input type="hidden" name="SubscriptionId" value="@subscription.SubscriptionId" />
+
+                        <!-- Subscription Name and Description -->
+                        <div class="form-group mb-3">
+                            <label for="SubscriptionName" class="fw-bold">اسم الاشتراك</label>
+                            <input name="SubscriptionName" required id="SubscriptionName" class="form-control" value="@subscription.SubscriptionName" placeholder="أدخل اسم الاشتراك" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="SubscriptionDescription" class="fw-bold">وصف الاشتراك</label>
+                            <textarea name="SubscriptionDescription" rows="5" required id="SubscriptionDescription" class="form-control" placeholder="أدخل وصف الاشتراك">@subscription.SubscriptionDescription</textarea>
+                        </div>
+
+                        <!-- Notes Section -->
+                        <div class="card shadow-sm p-3 mb-3">
+                            <h5 class="card-title mb-3">ملاحظات الاشتراك</h5>
+                            <div id="notesContainer-@subscription.SubscriptionId" class="mb-3">
+                                @foreach (var note in subscription.SubscriptionNotes)
+                                {
+                                    <div class="note-item input-group mt-2">
+                                        <input name="SubscriptionNotes" class="form-control" value="@note" required />
+                                        <button type="button" class="btn alert-danger btn-sm remove-note-btn">حذف</button>
+                                    </div>
+                                }
+                            </div>
+                            <button type="button" class="btn alert-secondary w-100 add-note-btn" data-id="@subscription.SubscriptionId">إضافة ملاحظة جديدة</button>
+                        </div>
+
+                        <!-- Plans Section -->
+                        <div class="card shadow-sm p-3 mb-3">
+                            <h5 class="card-title mb-3">خطط الاشتراك</h5>
+                            <div id="plansContainer-@subscription.SubscriptionId" class="mb-3">
+                                @for (int i = 0; i < subscription.Plans.Count; i++)
+                                {
+                                    var plan = subscription.Plans[i];
+                                    <div class="plan-item border rounded p-3 mt-3">
+                                        <!-- Price and Visits -->
+                                        <div class="form-group mb-3">
+                                            <label class="fw-bold">السعر</label>
+                                            <input name="Plans[@i].Price" type="number" class="form-control" value="@plan.Price" placeholder="أدخل السعر" required />
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label class="fw-bold">عدد الزيارات</label>
+                                            <input name="Plans[@i].VisitsNumber" type="number" class="form-control" value="@plan.VisitsNumber" placeholder="أدخل عدد الزيارات" required />
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label class="fw-bold">صلاحية البرنامج</label>
+                                            <input name="Plans[@i].ActiveDays" type="number" class="form-control" value="@plan.ActiveDays" placeholder="أدخل مدة تفعيل برامج بالايام" required />
+                                        </div>
+                                        <!-- Days of Week Selection -->
+                                        <div class="form-group mb-3">
+                                            <label>أيام الأسبوع</label>
+                                            <div class="d-flex flex-wrap">
+                                                @foreach (var day in daysOfWeek)
+                                                {
+                                                    if (day == Days.AllDays) continue;
+                                                    <div class="form-check" style="width: 23%; margin-right: 1%; margin-bottom: 10px;">
+                                                        <input type="checkbox" class="form-check-input" name="Plans[@i].SelectedDaysOfWeek" value="@day" id="day-@day-@i-@subscription.SubscriptionId"
+                                                        @(plan.SelectedDaysOfWeek.Contains(day) || plan.SelectedDaysOfWeek.Contains(Days.AllDays) ? "checked" : "") />
+                                                        <label class="form-check-label" for="day-@day-@i-@subscription.SubscriptionId">@translations[day]</label>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <!-- IsDuration Checkbox and Duration/Time Fields -->
+                                        <div class="form-check mb-3">
+                                            <input type="checkbox" class="form-check-input" name="Plans[@i].IsDuration" value="true" id="IsDuration-@i-@subscription.SubscriptionId" @(plan.IsDuration ? "checked" : "") onclick="toggleDurationFields(this)" />
+                                            <label class="form-check-label" for="IsDuration-@i-@subscription.SubscriptionId">خطة ذات مدة؟</label>
+                                        </div>
+                                        <div class="form-group plan-duration @(plan.IsDuration ? "" : "d-none")">
+                                            <label>المدة</label>
+                                            <input name="Plans[@i].Duration" type="number" class="form-control" value="@plan.Duration" placeholder="أدخل المدة بالساعات" />
+                                        </div>
+                                        <div class="form-group plan-times @(plan.IsDuration ? "d-none" : "")">
+                                            <label>من</label>
+                                            <input name="Plans[@i].From" type="time" class="form-control" value="@plan.From" />
+                                            <label>إلى</label>
+                                            <input name="Plans[@i].To" type="time" class="form-control" value="@plan.To" />
+                                        </div>
+
+                                        <button type="button" class="btn alert-danger btn-sm remove-plan-btn mt-3">حذف الخطة</button>
+                                    </div>
+                                }
+                            </div>
+                            <button type="button" class="btn alert-secondary w-100 add-plan-btn" data-id="@subscription.SubscriptionId">إضافة خطة جديدة</button>
+                        </div>
+
+                        <button type="submit" class="btn alert-primary w-100 mt-3">حفظ التعديلات</button>
+                        <a asp-action="DeleteSubscription" asp-route-id="@subscription.SubscriptionId" class="btn alert-danger w-100 mt-3"
+                           onclick="return confirm('هل أنت متأكد أنك تريد حذف هذا الاشتراك؟')">حذف الاشتراك</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section Scripts {
+    <script>
+        document.addEventListener("click", function (event) {
+            // Add new note field
+            if (event.target.matches(".add-note-btn")) {
+                const id = event.target.dataset.id;
+                const notesContainer = document.getElementById(`notesContainer-${id}`);
+                const noteItem = document.createElement("div");
+                noteItem.classList.add("note-item", "input-group", "mt-2");
+                noteItem.innerHTML = `
+                            <input name="SubscriptionNotes" class="form-control" required />
+                            <button type="button" class="btn alert-danger btn-sm remove-note-btn">حذف</button>`;
+                notesContainer.appendChild(noteItem);
+            }
+
+            // Remove note field
+            if (event.target.matches(".remove-note-btn")) {
+                event.target.closest(".note-item").remove();
+            }
+
+            // Add new plan field
+            if (event.target.matches(".add-plan-btn")) {
+                const id = event.target.dataset.id;
+                const plansContainer = document.getElementById(`plansContainer-${id}`);
+                const planIndex = plansContainer.querySelectorAll('.plan-item').length;
+                const planItem = document.createElement("div");
+                planItem.classList.add("plan-item", "border", "rounded", "p-3", "mt-3");
+                planItem.innerHTML = `
+                            <div class="form-group mb-3">
+                                <label class="fw-bold">السعر</label>
+                                        <input name="Plans[${planIndex}].Price" type="number" class="form-control" placeholder="أدخل السعر" required />
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="fw-bold">عدد الزيارات</label>
+                                        <input name="Plans[${planIndex}].VisitsNumber" type="number" class="form-control" placeholder="أدخل عدد الزيارات" required />
+                            </div>
+                                     <div class="form-group mb-3">
+                                        <label class="fw-bold">صلاحية البرنامج</label>
+                                        <input name="Plans[${planIndex}].ActiveDays" type="number" class="form-control" placeholder="أدخل مدة تفعيل برنامج بالايام" required />
+                                    </div>
+                            <div class="form-group mb-3">
+                                <label>أيام الأسبوع</label>
+                                <div class="d-flex flex-wrap">
+        @foreach (var day in daysOfWeek)
+        {
+            if (day == Days.AllDays) continue;
+                                            <div class="form-check" style="width: 23%; margin-right: 1%; margin-bottom: 10px;">
+                                                            <input type="checkbox" class="form-check-input" id="day-@day-${planIndex}" name="Plans[${planIndex}].SelectedDaysOfWeek" value="@day" />
+                                                            <label class="form-check-label" for="day-@day-${planIndex}">@translations[day]</label>
+                                            </div>
+        }
+                                </div>
+                            </div>
+                            <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input isDurationToggle" id="${planIndex}-IsDuration" name="Plans[${planIndex}].IsDuration" value="false" onclick="toggleDurationFields(this)" />
+                                        <label class="form-check-label" for="${planIndex}-IsDuration">خطة ذات مدة؟</label>
+                            </div>
+                            <div class="form-group plan-duration d-none">
+                                <label>المدة</label>
+                                        <input name="Plans[${planIndex}].Duration" type="number" class="form-control"/>
+                            </div>
+                            <div class="form-group plan-times">
+                                <label>من</label>
+                                <input name="Plans[${planIndex}].From" type="time" class="form-control"/>
+                                <label>إلى</label>
+                                        <input name="Plans[${planIndex}].To" type="time" class="form-control"/>
+                            </div>
+                            <button type="button" class="btn alert-danger btn-sm remove-plan-btn mt-3">حذف الخطة</button>
+                        `;
+                plansContainer.appendChild(planItem);
+            }
+
+            // Remove plan field
+            if (event.target.matches(".remove-plan-btn")) {
+                event.target.closest(".plan-item").remove();
+            }
+        });
+
+        function toggleDurationFields(checkbox) {
+            const planItem = checkbox.closest(".plan-item");
+            const durationField = planItem.querySelector(".plan-duration");
+            const timeFields = planItem.querySelector(".plan-times");
+
+            // Toggling visibility and setting the checkbox value
+            if (checkbox.checked) {
+                durationField.classList.remove("d-none");
+                timeFields.classList.add("d-none");
+                checkbox.value = "true"; // Set value to "true" when checked
+            } else {
+                durationField.classList.add("d-none");
+                timeFields.classList.remove("d-none");
+                checkbox.value = "false"; // Set value to "false" when unchecked
+            }
+        }
+    </script>
+}

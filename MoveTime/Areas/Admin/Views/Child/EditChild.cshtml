@@ -1,0 +1,421 @@
+﻿@model EditChild
+@{
+    ViewData["Title"] = "تعديل ملف طفل";
+
+    var genders = Enum.GetValues(typeof(Gender)).Cast<Gender>();
+    var gendertranslations = GenderTranslations.Translations;
+
+    var escorts = Enum.GetValues(typeof(EscortReason)).Cast<EscortReason>();
+    var escorttranslations = EscortReasonTranslations.Translations;
+    var errorsList = (TempData["ErrorMessage"] as string)?.Split("-");
+}
+
+<div class="container mt-5">
+    <!-- Status Messages -->
+    <partial name="_StatusMessages"></partial>
+
+    <h2 class="text-center mb-4">تعديل ملف طفل</h2>
+
+    <form id="addChildForm" asp-action="EditChild" method="post" enctype="multipart/form-data">
+
+        <input type="hidden" asp-for="Id" />
+
+        <!-- Child Section -->
+        <div class="card mb-4 shadow border-0 rounded">
+            <div class="card-header bg alert-secondary text-dark">معلومات الطفل</div>
+            <div class="card-body mt-5">
+                <div class="row mb-3">
+
+                    <!-- Child Details -->
+                    <div class="col-md-8">
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">
+                                الاسم
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" asp-for="Name" class="form-control" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <!-- National ID -->
+                        <div class="mb-3">
+                            <label asp-for="NationalId" class="form-label">
+                                رقم الهوية الوطنية
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" asp-for="NationalId" class="form-control" required />
+                            <span asp-validation-for="NationalId" class="text-danger"></span>
+                        </div>
+
+                        <!-- BirthDay -->
+                        <div class="mb-3">
+                            <label asp-for="BirthDay" class="form-label">
+                                تاريخ الميلاد
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" asp-for="BirthDay" class="form-control" onchange="calculateAge()" required />
+                            <span asp-validation-for="BirthDay" class="text-danger"></span>
+                        </div>
+
+                        <!-- Age (Read-only) -->
+                        <div class="mb-3">
+                            <label>العمر (بالسنوات)</label>
+                            <input type="number" asp-for="Oldyears" class="form-control" readonly />
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="mb-3">
+                            <label asp-for="Gender" class="form-label">
+                                الجنس
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="Gender" class="form-control" required>
+                                <option value="" selected>اختيار الجنس</option>
+                                @foreach (var gender in genders)
+                                {
+                                    if(Model.Gender == gender)
+                                    {
+                                        <option selected value="@gender">@gendertranslations[gender]</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@gender">@gendertranslations[gender]</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger"></span>
+                        </div>
+
+                        <!-- Phone and WhatsApp -->
+                        <div class="mb-3">
+                            <label asp-for="WhatsappNumber" class="form-label">
+                                رقم الواتساب
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" asp-for="WhatsappNumber" class="form-control" required />
+                            <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Phone" class="form-label">رقم هاتف آخر (اختياري)</label>
+                            <input type="text" asp-for="Phone" class="form-control" />
+                        </div>
+
+                        <!-- Disclaimer Image -->
+                        <div class="mb-3">
+                            <label asp-for="DisclaimerImage" class="form-label">
+                                صورة اخلاء المسؤلية
+                            </label>
+                            <input type="file" id="disclaimerImage" name="DisclaimerImage" class="form-control"/>
+                        </div>
+
+                        <!-- Health Condition -->
+                        <div class="mb-3">
+                            <label>هل لديه حالة صحية؟</label>
+                          @{
+                                if (Model.HaveHealthCondition)
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="HaveHealthCondition" checked id="HealthConditionYes" value="true" class="form-check-input" onclick="toggleField('HealthCondition', true)" />
+                                        <label for="HealthConditionYes" class="form-check-label">نعم</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="HaveHealthCondition"  id="HealthConditionNo" value="false" class="form-check-input" onclick="toggleField('HealthCondition', false)" />
+                                        <label for="HealthConditionNo" class="form-check-label">لا</label>
+                                    </div>
+                                    <textarea asp-for="HealthCondition" class="form-control mt-2" id="HealthCondition" placeholder="أدخل تفاصيل الحالة الصحية"></textarea>
+                                    <span asp-validation-for="HealthCondition" class="text-danger"></span>
+                                }
+                                else
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="HaveHealthCondition" id="HealthConditionYes" value="true" class="form-check-input" onclick="toggleField('HealthCondition', true)" />
+                                        <label for="HealthConditionYes" class="form-check-label">نعم</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="HaveHealthCondition" checked id="HealthConditionNo" value="false" class="form-check-input" onclick="toggleField('HealthCondition', false)" />
+                                        <label for="HealthConditionNo" class="form-check-label">لا</label>
+                                    </div>
+                                    <textarea asp-for="HealthCondition" class="form-control mt-2" id="HealthCondition" style="display:none;" placeholder="أدخل تفاصيل الحالة الصحية"></textarea>
+                                    <span asp-validation-for="HealthCondition" class="text-danger"></span>
+                                }
+                          }
+                        </div>
+
+                        <!-- Disability Condition -->
+                        <div class="mb-3">
+                            <label>هل لديه إعاقة؟</label>
+                            @{
+                                if (Model.IsDisabled)
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="IsDisabled" checked id="IsDisabledYes" value="true" class="form-check-input" onclick="toggleField('DisableDescription', true)" />
+                                        <label for="IsDisabledYes" class="form-check-label">نعم</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="IsDisabled" id="IsDisabledNo" value="false" class="form-check-input" onclick="toggleField('DisableDescription', false)" />
+                                        <label for="IsDisabledNo" class="form-check-label">لا</label>
+                                    </div>
+                                    <textarea asp-for="DisableDescription" class="form-control mt-2" id="DisableDescription" placeholder="أدخل تفاصيل الإعاقة"></textarea>
+                                    <span asp-validation-for="DisableDescription" class="text-danger"></span>
+                                }
+                                else
+                                {
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="IsDisabled" id="IsDisabledYes" value="true" class="form-check-input" onclick="toggleField('DisableDescription', true)" />
+                                        <label for="IsDisabledYes" class="form-check-label">نعم</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" asp-for="IsDisabled" checked id="IsDisabledNo" value="false" class="form-check-input" onclick="toggleField('DisableDescription', false)" />
+                                        <label for="IsDisabledNo" class="form-check-label">لا</label>
+                                    </div>
+                                    <textarea asp-for="DisableDescription" class="form-control mt-2" id="DisableDescription" style="display:none;" placeholder="أدخل تفاصيل الإعاقة"></textarea>
+                                    <span asp-validation-for="DisableDescription" class="text-danger"></span>
+                                }
+                            }
+                        </div>
+
+                        <!-- Parent Note -->
+                        <div class="mb-3">
+                            <label asp-for="ParentsNote" class="form-label">ملاحظات الوالدين (اختياري)</label>
+                            <textarea asp-for="ParentsNote" class="form-control" placeholder="أدخل ملاحظات الوالدين"></textarea>
+                        </div>
+                    </div>
+                    <!-- Child Image Upload -->
+                    <div class="col-md-4 text-center">
+                        <img id="childImagePreview" src="~/images/Childrens/@Model.ChildImageName" alt="Child Image" class="img-fluid" style="max-height: 200px; width: 100%; height: 100%; object-fit: contain;" />
+                        <div class="mt-2">
+                            <input type="file" id="childImageInput" name="ChildImageFile" class="form-control" onchange="previewImage('childImagePreview', this)" />
+                         </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Section -->
+        <div class="card mb-4 shadow border-0 rounded">
+            <div class="card-header bg alert-secondary text-dark">إعدادات الموظف</div>
+            <div class="card-body mt-4">
+
+                <!-- BlackList Condition -->
+                <div class="mb-3">
+                    <label>هل الطفل على القائمة السوداء؟</label>
+                    @{
+                        if(Model.BlackList)
+                        {
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="BlackList" checked id="BlackListYes" value="true" class="form-check-input" onclick="toggleField('BlackListReason', true)" />
+                                <label for="BlackListYes" class="form-check-label">نعم</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="BlackList" id="BlackListNo" value="false" class="form-check-input" onclick="toggleField('BlackListReason', false)" />
+                                <label for="BlackListNo" class="form-check-label">لا</label>
+                            </div>
+                            <textarea asp-for="BlackListReason" class="form-control mt-2" id="BlackListReason" placeholder="سبب وجود الطفل على القائمة"></textarea>
+                            <span asp-validation-for="BlackListReason" class="text-danger"></span>
+                        }
+                        else
+                        {
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="BlackList" id="BlackListYes" value="true" class="form-check-input" onclick="toggleField('BlackListReason', true)" />
+                                <label for="BlackListYes" class="form-check-label">نعم</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="BlackList" checked id="BlackListNo" value="false" class="form-check-input" onclick="toggleField('BlackListReason', false)" />
+                                <label for="BlackListNo" class="form-check-label">لا</label>
+                            </div>
+                            <textarea asp-for="BlackListReason" class="form-control mt-2" style="display:none;" id="BlackListReason" placeholder="سبب وجود الطفل على القائمة"></textarea>
+                            <span asp-validation-for="BlackListReason" class="text-danger"></span>
+                        }
+                    }           
+                 </div>
+
+                <!-- Escort Status -->
+                <div class="mb-3">
+                    <label>يجب وجود مرافقه مع الطفل؟</label>
+                    @{
+                        if(Model.IsEscort)
+                        {
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="IsEscort" checked id="IsEscortYes" value="true" class="form-check-input" onclick="toggleField('EscortReason', true)" />
+                                <label for="IsEscortYes" class="form-check-label">نعم</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="IsEscort" id="IsEscortNo" value="false" class="form-check-input" onclick="toggleField('EscortReason', false)" />
+                                <label for="IsEscortNo" class="form-check-label">لا</label>
+                            </div>
+                            <select id="EscortReason" name="EscortReason" class="form-control mt-2">
+                                @foreach (var escort in escorts)
+                                {
+                                    if (Model.EscortReason == escort)
+                                    {
+                                        <option selected value="@(escort != EscortReason.None ? escort : "")">@escorttranslations[escort]</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@(escort != EscortReason.None ? escort : "")">@escorttranslations[escort]</option>
+                                    }
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="IsEscort" id="IsEscortYes" value="true" class="form-check-input" onclick="toggleField('EscortReason', true)" />
+                                <label for="IsEscortYes" class="form-check-label">نعم</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="IsEscort" checked id="IsEscortNo" value="false" class="form-check-input" onclick="toggleField('EscortReason', false)" />
+                                <label for="IsEscortNo" class="form-check-label">لا</label>
+                            </div>
+                            <select id="EscortReason" name="EscortReason" class="form-control mt-2" style="display:none;">
+                                @foreach (var escort in escorts)
+                                {
+                                     <option value="@(escort != EscortReason.None ? escort : "")">@escorttranslations[escort]</option>                                
+                                }
+                            </select>
+                        }
+                    }
+                </div>
+
+                <!-- Approval and Subscription Status -->
+                <div class="mb-3">
+                    <label>موافقة المشرفة على بیانات الطفل؟</label>
+                    <div class="form-check form-check-inline">
+                        <input type="radio" asp-for="IsApproved" id="IsApprovedYes" value="true" class="form-check-input" />
+                        <label for="IsApprovedYes" class="form-check-label">نعم</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="radio" asp-for="IsApproved" id="IsApprovedNo" value="false" class="form-check-input" />
+                        <label for="IsApprovedNo" class="form-check-label">لا</label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label>مسموح بالاشتراك؟</label>
+                    <div class="form-check form-check-inline">
+                        <input type="radio" asp-for="IsAllowedToSubscribe" id="IsAllowedToSubscribeYes" value="true" class="form-check-input" />
+                        <label for="IsAllowedToSubscribeYes" class="form-check-label">نعم</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="radio" asp-for="IsAllowedToSubscribe" id="IsAllowedToSubscribeNo" value="false" class="form-check-input" />
+                        <label for="IsAllowedToSubscribeNo" class="form-check-label">لا</label>
+                    </div>
+                </div>
+
+                <!-- Supervisor Note -->
+                <div class="mb-3">
+                    <label for="SupervisorNote" class="form-label">ملاحظات المشرف (اختياري)</label>
+                    <textarea asp-for="SupervisorNote" class="form-control" rows="3" placeholder="أدخل ملاحظات المشرف"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Account Section -->
+        <div class="card mb-4 shadow border-0 rounded">
+            <div class="card-header bg alert-secondary text-dark">إعدادات حساب الوالدين (اختياري)</div>
+            <div class="card-body">
+                <div class="mb-3 mt-4">
+                    <button type="button" class="btn alert-primary " onclick="toggleParentAccount('existing')">إضافة حساب موجود</button>
+                    <button type="button" class="btn alert-primary" onclick="toggleParentAccount('new')">إضافة حساب جديد</button>
+                    <button type="button" style="display:@(string.IsNullOrEmpty(Model.Email) ? "none" : "");" id="removesection" class="btn alert-danger" onclick="toggleParentAccount('remove')">حذف</button>
+                </div>
+
+                <!-- Existing Parent Account -->
+                <div id="existingParent" style="display:@(string.IsNullOrEmpty(Model.Email) ? "none" : "block");">
+                    <div class="mb-3">
+                        <label for="EmailExisting" class="form-label">
+                            البريد الإلكتروني
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" name="Email" value="@Model.Email" class="form-control" id="EmailExisting" />
+                    </div>
+                </div>
+
+                <!-- New Parent Account -->
+                <div id="newParent" style="display:none;">
+                    <div class="mb-3">
+                        <label for="Password" class="form-label">
+                            كلمة المرور
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" asp-for="Password" class="form-control" id="Password" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ConfirmPassword" class="form-label">
+                            تأكيد كلمة المرور
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" asp-for="ConfirmPassword" class="form-control" id="ConfirmPassword" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn alert-primary btn-block">تعديل بيانات الطفل</button>
+    </form>
+</div>
+
+<script>
+    function toggleParentAccount(accountType) {
+        // Hide both sections initially
+        document.getElementById('existingParent').style.display = 'none';
+        document.getElementById('newParent').style.display = 'none';
+        document.getElementById('removesection').style.display = 'none';
+        document.getElementById('ConfirmPassword').required = false;
+        document.getElementById('Password').required = false;
+        document.getElementById('EmailExisting').required = false;
+        document.getElementById('ConfirmPassword').value = '';
+        document.getElementById('Password').value = '';
+        document.getElementById('EmailExisting').value = '';
+
+        // Show the selected section based on the account type
+        if (accountType === 'existing') {
+            document.getElementById('existingParent').style.display = 'block';
+            document.getElementById('removesection').style.display = 'inline';
+            document.getElementById('EmailExisting').required = true;
+        } else if (accountType === 'new') {
+            document.getElementById('newParent').style.display = 'block';
+            document.getElementById('existingParent').style.display = 'block';
+            document.getElementById('removesection').style.display = 'inline';
+            document.getElementById('ConfirmPassword').required = true;
+            document.getElementById('Password').required = true;
+            document.getElementById('EmailExisting').required = true;
+        }
+    }
+    function previewImage(previewId, input) {
+        const previewContainer = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewContainer.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function toggleField(fieldId, isChecked) {
+        const field = document.getElementById(fieldId);
+        if (isChecked) {
+            field.style.display = 'block'; // Show the field when checkbox is checked
+            field.required = true; // Make it required
+        } else {
+            field.style.display = 'none'; // Hide the field when checkbox is unchecked
+            field.required = false; // Remove required status
+            field.value = ''; // Clear the field value
+        }
+    }
+
+    // Function to calculate and display age based on birth date input
+    const birthdayInput = document.getElementById('BirthDay');
+    const ageDisplay = document.getElementById('Oldyears');
+    birthdayInput.addEventListener('change', function () {
+        const birthDate = new Date(this.value);
+        const age = new Date().getFullYear() - birthDate.getFullYear();
+        ageDisplay.value = age;
+    });
+
+</script>

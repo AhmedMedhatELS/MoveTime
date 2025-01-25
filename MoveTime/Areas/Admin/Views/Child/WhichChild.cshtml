@@ -1,0 +1,192 @@
+﻿
+@{
+    ViewData["Title"] = "أختيار الطفل";
+
+    var errorsList = (TempData["ErrorMessage"] as string)?.Split("-");
+
+}
+
+<div class="admin-child-dashboard mb-4">
+
+    <!-- Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (errorsList != null)
+    {
+        foreach (var error in errorsList)
+        {
+            <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+                <span class="me-auto">@error</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+    }
+
+    <!-- Header -->
+    <h2 class="text-center mb-4">أختيار الطفل للاشتراك</h2>
+
+    <!-- Legend -->
+    <div class="legend d-flex align-items-center justify-content-center mb-4 p-3 rounded shadow-sm">
+        <div class="legend-item blacklisted-hint me-2"></div>
+        <span class="legend-text">الأطفال في القائمة السوداء مميزة باللون الأحمر</span>
+    </div>
+
+    <!-- Search Bar -->
+    <input type="text" id="searchBar" placeholder="Search by Name or PhoneNumber" class="form-control mb-4" onkeyup="filterChildren()" />
+
+    <!-- Child Cards -->
+    <div id="cont" class="child-cards-container d-flex flex-wrap justify-content-center">
+    </div>
+</div>
+
+<script>
+
+    // Create a connection to the hub
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/cardHub")
+        .build();
+
+    connection.on("ChildCardsResult", function (children) {
+
+        const childrenContinour = document.getElementById("cont");
+
+        children.forEach(child => {
+            const childDiv = document.createElement("div");
+
+            childDiv.id = `cont-${child.id}`;
+            childDiv.classList.add('child-card');
+            childDiv.classList.add(`${child.onBlackList ? "blacklisted-card" : "regular-card"}`);
+
+            childDiv.innerHTML = `
+                        <a href="/Admin/Child/ChildDebt?id=${child.id}&Where=sub" class="card-link">
+                        <div class="image-wrapper">
+                                <img src="/images/Childrens/${child.childImage}" alt="${child.name}" class="child-image" />
+                        </div>
+                        <h5 class="child-name">${child.name}</h5>
+                            <p class="child-id">كود: ${child.id}</p>
+                    </a>
+                            `;
+
+            childrenContinour.appendChild(childDiv);
+        });
+
+    });
+
+    // Start the connection
+    connection.start();
+
+    function filterChildren() {
+        const searchText = document.getElementById('searchBar').value.toLowerCase();
+        const cards = document.querySelectorAll('.child-card');
+
+        cards.forEach(card => {
+            card.remove();
+        });
+
+        if (searchText.trim())
+            connection.invoke("ChildCards", searchText);
+    }
+</script>
+
+
+<style>
+    .admin-child-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .child-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .child-card {
+        width: 200px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+    }
+
+        .child-card:hover {
+            transform: scale(1.05);
+        }
+
+    .regular-card {
+        background-color: #f8f9fa;
+    }
+
+    .blacklisted-card {
+        background-color: #ffe6e6;
+        border: 2px solid #ff4d4d;
+    }
+
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .image-wrapper {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .child-image {
+        width: auto;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .child-name {
+        margin: 10px 0 5px;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .child-id {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+
+    /* Responsive Styling */
+    @@media (max-width: 768px) {
+        .child-card {
+            width: 100%;
+        }
+    }
+
+    .legend {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+    }
+
+    .legend-item {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: 2px solid #ff4d4d;
+    }
+
+    .legend-text {
+        font-size: 1rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .blacklisted-hint {
+        background-color: #ffe6e6;
+    }
+
+</style>

@@ -1,0 +1,145 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Models;
+@inject SignInManager<ApplicationUser> SignInManager
+@using Utility
+@{
+    var currentController = Context.Request.RouteValues["controller"]?.ToString();
+    var currentAction = Context.Request.RouteValues["action"]?.ToString();
+    var whichshift = TempData["whichShiftAdminPartial"] as string;
+    var addWhich = TempData["AddWhich"] as string;
+}
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - وقت الحركة</title>
+    
+    <!-- Fonts and Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap and Custom Styles -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MoveTime.styles.css" asp-append-version="true" />
+
+    <!-- Reference the SignalR JavaScript client from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+
+</head>
+<body>
+    <!-- Navbar -->
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <img src="~/favicon.png" alt="Logo" width="30" height="30" class="me-2">
+                    وقت الحركة
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link @(currentController == "Home" && currentAction == "Index" ? "active" : "" )" asp-area="Customer" asp-controller="Home" asp-action="Index">الرئيسية</a>
+                        </li>                       
+                        <li class="nav-item">
+                            <a class="nav-link  @(currentController == "Child" && currentAction == "AddChild" ? "active" : "" )" 
+                            asp-area="Customer" asp-controller="Child" asp-action="AddChild">
+                            أضف طفلك
+                        </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link  @(currentController == "Home" && currentAction == "GetLoggedIn" ? "active" : "" )"
+                               asp-area="Customer" asp-controller="Home" asp-action="GetLoggedIn">
+                                الأطفال الحاضرين 
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link  @(currentController == "Service" && currentAction == "ShowPrices" ? "active" : "" )"
+                               asp-area="Customer" asp-controller="Service" asp-action="ShowPrices">
+                                الاسعار
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link  @(currentController == "Service" && currentAction == "ViewSubscriptions" ? "active" : "" )"
+                               asp-area="Customer" asp-controller="Service" asp-action="ViewSubscriptions">
+                                الاشتراكات
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="DocDownLoad" href="javascript:void(0)" download>أخلاء الطرف</a>
+                        </li>
+                        @if (User.IsInRole("Admin") || User.IsInRole("Supervisor"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">لوحة التحكم</a>
+                            </li>
+                        }
+                    </ul>
+                    <partial name="_LoginPartial"></partial>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <br />
+    <br />
+    <br />
+    <br />
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                &copy; 2024 - وقت الحركة
+            </div>
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+<script>
+    // Create a connection to the hub
+    const connectionrightbar = new signalR.HubConnectionBuilder()
+        .withUrl("/docHub")
+        .build();
+
+    // Function that the hub can call to broadcast price
+    connectionrightbar.on("DocLink", function (link) {
+        document.getElementById("DocDownLoad").href = link;
+    });
+
+    connectionrightbar.start()
+        .then(function () {
+            connectionrightbar.invoke("GetDocLink");
+        })
+        .catch(function (err) {
+            console.error("Error while starting connection: " + err);
+        });
+</script>
+
+</html>

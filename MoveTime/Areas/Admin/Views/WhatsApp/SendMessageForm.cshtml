@@ -1,0 +1,217 @@
+﻿@model MassagesView
+
+@{
+    ViewBag.Title = "إرسال الرسائل";
+}
+
+<div class="admin-child-dashboard mb-4">
+
+    <partial name="_StatusMessages"></partial>
+
+    <!-- Header -->
+    <h2 class="text-center mb-4">إرسال الرسائل عبر واتساب</h2>
+    <form method="post" asp-action="SendMessage">
+        <div class="text-center mt-4">
+            <!-- Select All Button -->
+            <button type="button" class="btn alert-secondary" onclick="toggleSelectAll()">تحديد الكل</button>
+            <!-- Submit Button -->
+            <button type="submit" class="btn alert-primary">إرسال الرسالة</button>
+        </div>
+
+        <!-- Message Input -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="Massage">نص الرسالة</label>
+                    <textarea id="Massage" asp-for="Massage" class="form-control" rows="5" required></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <input type="text" id="searchBar" placeholder="بحث عن الطفل بالاسم أو رقم الهوية" class="form-control mb-4" onkeyup="filterChildren()" />
+
+        <!-- Child Selection Cards -->
+        <div class="child-cards-container d-flex flex-wrap justify-content-center" id="childrenCards">
+            @foreach (var child in Model.Children)
+            {
+                <div onclick="toggleChildSelection(@child.Id)" class="child-card @(child.OnBlackList ? "blacklisted-card" : "regular-card")" data-name="@child.Name" data-id="@child.Id">
+                    <div class="image-wrapper">
+                        <img src="~/images/Childrens/@child.ChildImage" alt="@child.Name" class="child-image" />
+                    </div>
+                    <h5 class="child-name">@child.Name</h5>
+                    <p class="child-id">رقم الهوية: @child.Id</p>
+                    <p>رقم واتساب: <span class="child-whatsapp">@child.WhatsAppNumber</span></p>
+                    <span class="badge @(child.OnBlackList ? "bg-danger" : "bg-success")">@((child.OnBlackList ? "محظور" : "غير محظور"))</span>
+                </div>
+            }
+        </div>
+
+        <!-- Hidden Input for Selected Child Numbers -->
+        <input type="hidden" asp-for="NumbersToSendTo" id="NumbersToSendTo" />
+    </form>
+</div>
+
+<style>
+    /* Use styles from the provided child selection view */
+    .admin-child-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .child-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .child-card {
+        width: 200px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+    }
+
+        .child-card:hover {
+            transform: scale(1.05);
+        }
+
+    .regular-card {
+        background-color: #f8f9fa;
+    }
+
+    .blacklisted-card {
+        background-color: #ffe6e6;
+        border: 2px solid #ff4d4d;
+    }
+
+    .legend {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+    }
+
+    .legend-item {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: 2px solid #ff4d4d;
+    }
+
+    .legend-text {
+        font-size: 1rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .blacklisted-hint {
+        background-color: #ffe6e6;
+    }
+
+    .child-name, .child-id, .child-whatsapp {
+        font-size: 1rem;
+        margin-top: 5px;
+    }
+
+    .image-wrapper {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .child-image {
+        width: auto;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .selected {
+        border: 2px solid blue !important;
+    }
+</style>
+
+<script>
+    // Function to toggle selection of individual children
+    function toggleChildSelection(childId) {
+        const childCard = document.querySelector(`[data-id='${childId}']`);
+        const hiddenInput = document.getElementById('NumbersToSendTo');
+        const childNumber = childCard.querySelector('.child-whatsapp').textContent.trim();
+
+        const sameNumberCards = document.querySelectorAll(`.child-card .child-whatsapp`);
+        let selectedNumbers = hiddenInput.value ? hiddenInput.value.split('-') : [];
+        const isSelected = selectedNumbers.includes(childNumber);
+
+        sameNumberCards.forEach(card => {
+            const cardContainer = card.closest('.child-card');
+            const cardNumber = card.textContent.trim();
+
+            if (cardNumber === childNumber) {
+                if (isSelected) {
+                    cardContainer.classList.remove('selected');
+                } else {
+                    cardContainer.classList.add('selected');
+                }
+            }
+        });
+
+        if (isSelected) {
+            selectedNumbers = selectedNumbers.filter(num => num !== childNumber);
+        } else {
+            selectedNumbers.push(childNumber);
+        }
+
+        hiddenInput.value = selectedNumbers.join('-');
+    }
+
+    // Function to select or deselect all children at once
+    function toggleSelectAll() {
+        const hiddenInput = document.getElementById('NumbersToSendTo');
+        const allChildCards = document.querySelectorAll('.child-card');
+        let allNumbers = new Set(); // Using Set to avoid duplicates
+
+        allChildCards.forEach(card => {
+            const childNumber = card.querySelector('.child-whatsapp').textContent.trim();
+
+            if (!card.classList.contains('selected')) {
+                card.classList.add('selected'); // Select all
+            }
+            allNumbers.add(childNumber); // Add to Set to ensure no duplicates
+        });
+
+        // Update hidden input with unique numbers
+        hiddenInput.value = Array.from(allNumbers).join('-');
+    }
+
+    function filterChildren() {
+        const searchText = document.getElementById('searchBar').value.toLowerCase();
+        const cards = document.querySelectorAll('.child-card');
+
+        cards.forEach(card => {
+            const name = card.querySelector('.child-name').textContent.toLowerCase();
+            const id = card.querySelector('.child-id').textContent.toLowerCase();
+
+            card.style.display = (name.includes(searchText) || id.includes(searchText)) ? '' : 'none';
+        });
+    }
+
+    // Function to check if at least one child is selected before submitting
+    function validateForm(event) {
+        const hiddenInput = document.getElementById('NumbersToSendTo');
+
+        // Check if any numbers are selected (hidden input is not empty)
+        if (!hiddenInput.value.trim()) {
+            event.preventDefault(); // Prevent form submission
+            alert('يرجى تحديد طفل واحد على الأقل لإرسال الرسالة');
+        }
+    }
+
+    // Add the validation to the form submission
+    document.querySelector('form').addEventListener('submit', validateForm);
+</script>
+

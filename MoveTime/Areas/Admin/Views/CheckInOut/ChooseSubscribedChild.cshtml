@@ -1,0 +1,440 @@
+﻿@using Newtonsoft.Json
+
+@{
+    ViewData["Title"] = "اختيار الطفل المشترك";
+
+    CheckInTicket ticket = new();
+
+    if (TempData["Ticket"] != null)
+    {
+        ticket = JsonConvert.DeserializeObject<CheckInTicket>((string)TempData["Ticket"]) ?? new CheckInTicket();
+    }
+}
+<div class="admin-child-dashboard mb-4 no-print">
+    <partial name="_StatusMessages"></partial>
+    <!-- Header -->
+    <h2 class="text-center mb-4">أختيار الطفل لتسجيل دخول</h2>
+
+    <!-- Legend -->
+    <div class="legend d-flex align-items-center justify-content-center mb-4 p-3 rounded shadow-sm">
+        <div class="legend-item blacklisted-hint me-2"></div>
+        <span class="legend-text">الأطفال في القائمة السوداء مميزة باللون الأحمر</span>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend d-flex align-items-center justify-content-center mb-4 p-3 rounded shadow-sm">
+        <div class="legend-item HaveDebt-hint me-2"></div>
+        <span class="legend-text">الأطفال الذين عليهم ديون مميزة باللون الاصفر</span>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend d-flex align-items-center justify-content-center mb-4 p-3 rounded shadow-sm">
+        <div class="legend-item HaveDebtBlackListed-hint me-2"></div>
+        <span class="legend-text">الأطفال في القائمة السوداء و عليهم ديون مميزة باللون الأحمر و الاصفر</span>
+    </div>
+
+    <!-- Search Bar -->
+    <input type="text" id="searchBar" placeholder="Search by Name or PhoneNumber" class="form-control mb-4" onkeyup="filterChildren()" />
+
+    <!-- Child Cards -->
+    <div id="childrenDiv" class="child-cards-container d-flex flex-wrap justify-content-center">
+       <!-- children cards -->
+    </div>
+</div>
+
+<div class="modal fade no-print" id="childPlansModal" tabindex="-1" aria-labelledby="childPlansModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="childPlansModalLabel">خطط أشتراكات الطفل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="plans-cards-container d-flex flex-wrap justify-content-center">
+                    <!-- Plans will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ticket -->
+<div style="display: none;" class="ticket-container border border-2 rounded-3 p-4 bg-light shadow-sm print-pay">
+    <div class="ticket-header text-center border-bottom border-2 pb-3 mb-4">
+        <h1 class="fs-4 fw-bold">تذكرة تسجيل الدخول</h1>
+        <p class="text-secondary">شكراً لاختياركم Move Time</p>
+    </div>
+
+    <div class="ticket-details mb-4">
+        <p><span class="fw-bold text-dark">رقم التذكرة : </span> @ticket.CheckInOutID</p>
+        <p><span class="fw-bold text-dark">وقت تسجيل الدخول : </span><span dir="ltr"> @ticket.CheckInTime </span></p>
+        <p><span class="fw-bold text-dark">وقت الخروج المتوقع : </span><span dir="ltr"> @ticket.ExpectedCheckOutTime </span></p>
+    </div>
+
+    <div class="children-list">
+        <h3 class="fs-5 fw-bold mb-3">الأطفال:</h3>
+        <ul class="list-unstyled">
+            @foreach (var child in ticket.ChildrensNames)
+            {
+                <li class="mb-2 text-secondary">- @child</li>
+            }
+        </ul>
+    </div>
+
+    <div class="footer text-center mt-4 text-muted">
+        <p> Move Time - نجعل كل لحظة مميزة</p>
+        <p>&copy; 2025 Move Time</p>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    function showPlansModal(childId) {
+        const childCard = document.getElementById(`details-${childId}`);
+        const childName = childCard.getAttribute('data-name');
+        const plans = JSON.parse(childCard.getAttribute('data-plans'));
+
+        // Update modal title
+        document.getElementById('childPlansModalLabel').textContent = `خطط أشتراكات الطفل :  ${childName}`;
+
+        // Get the container for plans
+        const plansContainer = document.querySelector('.plans-cards-container');
+        plansContainer.innerHTML = ''; // Clear previous content
+
+        // Populate with plans
+        plans.forEach(plan => {
+            const planCard = document.createElement('div');
+            planCard.className = 'plan-card card shadow-sm m-3';
+            planCard.innerHTML = `
+                <div class="card-body">
+                    <h5 class="card-title">${plan.PlanName}</h5>
+                    <p class="card-text">
+                        ${plan.IsDuration
+                    ? `<span>المدة: ${plan.Duration} ساعات</span>`
+                    : `<span>من: ${plan.From} إلى: ${plan.To}</span>`}
+                    </p>
+                    <p>الزيارات المتبقية: <strong>${plan.RemainingVisits}</strong></p>
+                                <a class="btn alert-primary" href="/Admin/CheckInOut/SubscriptionCheckIn?id=${plan.Id}">
+                        تسجيل دخول
+                    </a>
+                </div>
+            `;
+            plansContainer.appendChild(planCard);
+        });
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('childPlansModal'));
+        modal.show();
+    }
+
+
+    </script>
+
+   
+<script>
+
+    // Create a connection to the hub
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/checkInOutHub")
+        .build();
+
+    // Function that the hub can call to broadcast price
+    connection.on("ChildrenSubResult", function (children) {
+
+        const childrenDiv = document.getElementById("childrenDiv");
+        children.forEach(child => {
+                 const childDiv = document.createElement("div");
+
+            childDiv.id = `cont-${child.id}`;
+            childDiv.classList.add('Remove');
+
+            childDiv.innerHTML = `
+                                <div id="details-${child.id}" class="child-card
+                                   ${child.blackList && child.totalDebt > 0 ? "HaveDebt-BlackListed-card" :
+                                    child.blackList ? "blacklisted-card" :
+                                    child.totalDebt > 0 ? "HaveDebt-card" :
+                                    "regular-card"}"
+                                    data-id="${child.id}"
+                                    data-name="${child.name}"
+                                    data-plans='${child.childPlansJson}'>
+                                        <a class="card-link" onclick="showPlansModal(${child.id})">
+                                        <div class="image-wrapper">
+                                                <img src="/images/Childrens/${child.imageName}" alt="${child.name}" class="child-image" />
+                                        </div>
+                                            <h5 class="child-name">${child.name}</h5>
+                                            <p class="child-id">كود: ${child.id}</p>
+                                            <p>مجموع الوقت فى المركز: <br /> ${child.totalTime}</p>
+                                            <p> دين : ${child.totalDebt} </p>
+                                    </a>
+                                </div>
+            `;
+
+            childrenDiv.appendChild(childDiv);
+
+            });
+
+    });
+
+    // Start the connection
+    connection.start();
+
+
+    function filterChildren() {
+        const searchText = document.getElementById('searchBar').value.toLowerCase();
+            const cards = document.querySelectorAll('.Remove');
+        cards.forEach(card => {           
+            card.remove();
+        });
+
+        if (searchText.trim())
+            connection.invoke("ChildrenSearchSub", searchText);
+    }
+</script>
+
+<script>
+      document.getElementById('printButton').addEventListener('click', function() {
+      window.print();  // This will trigger the browser's print dialog
+    });
+</script>
+
+<style>
+    /* Print media styling */
+    @@media print {
+        .print-pay {
+            display: block !important;
+        }
+
+        .print {
+            display: flex !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+        /* Hide everything except the main bill container */
+        body * {
+            visibility: hidden;
+        }
+        /* Remove page breaks and prevent splitting content across pages */
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ticket-container, .ticket-container * {
+            visibility: visible;
+        }
+
+        .ticket-container {
+            /*   visibility: visible !important;
+                display: block !important; */
+            border: 2px solid #444; /* Dark border for a distinct ticket frame */
+            border-radius: 10px; /* Rounded corners for a modern feel */
+            background-color: #f9f9f9; /* Subtle light background for contrast */
+            padding: 20px; /* Add spacing inside the ticket */
+            margin: 20px auto; /* Center the ticket */
+            max-width: 600px; /* Limit width for readability */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation */
+        }
+
+        .ticket-header {
+            text-align: center; /* Center the text in the header */
+            border-bottom: 2px solid #444; /* Separator line below the header */
+            margin-bottom: 20px; /* Space below the header */
+            padding-bottom: 10px; /* Padding below the header */
+        }
+
+            .ticket-header h1 {
+                font-size: 24px; /* Main title font size */
+                color: #333; /* Dark gray for text */
+                margin: 0; /* Remove extra margin */
+            }
+
+            .ticket-header p {
+                font-size: 14px; /* Subtitle font size */
+                color: #666; /* Lighter gray for less emphasis */
+            }
+
+        .ticket-details p {
+            font-size: 16px; /* Font size for details */
+            margin: 5px 0; /* Spacing between details */
+        }
+
+        .ticket-details span {
+            font-weight: bold; /* Highlight labels */
+            color: #333; /* Darker gray for emphasis */
+        }
+
+        .children-list h3 {
+            font-size: 18px; /* Subheading size for children section */
+            color: #444; /* Slightly darker gray for prominence */
+            margin-bottom: 15px; /* Add spacing below the heading */
+        }
+
+        .children-list ul {
+            list-style-type: none; /* Remove bullets from list */
+            padding: 0; /* Remove padding from list */
+        }
+
+            .children-list ul li {
+                font-size: 16px; /* Font size for child names */
+                margin: 5px 0; /* Space between names */
+                color: #555; /* Medium gray for names */
+            }
+
+        .footer {
+            text-align: center; /* Center footer text */
+            margin-top: 20px; /* Space above the footer */
+            font-size: 14px; /* Smaller font size for footer */
+            color: #888; /* Light gray for footer text */
+        }
+    }
+</style>
+
+<style>
+    .plans-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .plan-card {
+        width: 250px;
+        border-radius: 10px;
+        overflow: hidden;
+        text-align: center;
+    }
+
+        .plan-card .card-body {
+            padding: 15px;
+        }
+
+        .plan-card .btn {
+            margin-top: 10px;
+        }
+
+</style>
+
+<style>
+    .admin-child-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .child-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .child-card {
+        width: 200px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+    }
+
+        .child-card:hover {
+            transform: scale(1.05);
+        }
+
+    .regular-card {
+        background-color: #f8f9fa;
+    }
+
+    .blacklisted-card {
+        background-color: #ffe6e6;
+        border: 2px solid #ff4d4d;
+    }
+
+    .HaveDebt-card {
+        background-color: #fff3cd; /* Light yellow-orange background */
+        border: 2px solid #ffc107; /* Bright orange border */
+    }
+
+    .HaveDebt-BlackListed-card {
+        background-color: #fff3cd; /* Light yellow-orange background */
+        border: 2px solid #ff4d4d;
+    }
+
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .image-wrapper {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .child-image {
+        width: auto;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .child-name {
+        margin: 10px 0 5px;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .child-id {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+
+    /* Responsive Styling */
+    @@media (max-width: 768px) {
+        .child-card {
+            width: 100%;
+        }
+    }
+
+    .legend {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+    }
+
+    .legend-item {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        
+    }
+
+    .legend-text {
+        font-size: 1rem;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .blacklisted-hint {
+        background-color: red;
+    }
+
+    .HaveDebt-hint {
+        background-color: yellow;
+    }
+
+    .HaveDebtBlackListed-hint {
+        background-color: #fff3cd;
+        border: 2px solid #ff4d4d;
+    }
+
+</style>

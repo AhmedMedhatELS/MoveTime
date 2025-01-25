@@ -1,0 +1,746 @@
+﻿@model CheckOutView
+
+@{
+    ViewData["Title"] = "تسجيل الخروج";
+}
+
+<div class="container mt-4">
+    <partial name="_StatusMessages"></partial>
+    <h2 class="mb-3 text-center">تسجيل الخروج</h2>
+
+    @if(Model.PlanId != -1)
+    {
+        <div class="card mb-4 shadow-sm p-3 bg-white rounded" dir="rtl">
+            <div class="row align-items-center">
+                <!-- Child Name and Remaining Visits -->
+                <div class="col-md-4 text-center">
+                    <h2 class="fw-bold text-primary" style="word-wrap: break-word; line-height: 1.5; font-size: 1.5rem;">
+                        @Model.Name
+                    </h2>
+                    <p class="text-muted mt-2">
+                        عدد الزيارات المتبقية: <strong>@Model.RemaningVists</strong>
+                    </p>
+                </div>
+
+                <!-- Subscription Details -->
+                <div class="col-md-8">
+                    <h4 class="text-secondary">الاشتراك: @Model.SubName</h4>
+                    <div class="mt-2">
+                        @if (Model.IsDuration)
+                        {
+                            <p>
+                                <i class="bi bi-clock"></i>
+                                المدة: <strong>@Model.Duration</strong> ساعات
+                            </p>
+                        }
+                        else
+                        {
+                            <p>
+                                <i class="bi bi-clock-fill"></i>
+                                من: <strong>@Model.From</strong> - إلى: <strong>@Model.To</strong>
+                            </p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+             <!-- Notes Section -->
+             <div class="mt-3">
+            <button class="btn font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#notesSection" aria-expanded="false" aria-controls="notesSection">
+                عرض الملاحظات
+            </button>
+            <div class="mt-2 collapse" id="notesSection">
+                <div class="card card-body mt-3  border-top-0 bg-light shadow-sm">
+                    @if (Model.Notes.Any())
+                    {
+                        <ul class="list-unstyled mb-0">
+                            @foreach (var note in Model.Notes)
+                            {
+                                <li class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-file-earmark-text text-primary me-2" style="font-size: 1.2rem;"></i>
+                                    <span>@note</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">لا توجد ملاحظات</p>
+                    }
+                </div>
+            </div>
+
+        </div>
+        </div>
+    }
+
+    @if (Model.ActiveCheckIn)
+    {
+        <!-- check in if avalible -->
+        <div class="container-lg">
+            <h5 class="mb-3 text-center">حساب الدخول</h5>
+            <div class="price-summary">
+                <div class="price-item">
+                    <p>طريقة الدفع</p>
+                    <span>@Model.CheckInPayment.ToString()</span>
+                </div>
+                <div class="price-item">
+                    <p>مجموع</p>
+                    <span>@Model.CheckInTotal</span> ريال
+                </div>
+                <div class="price-item">
+                    <p>حساب الوقت</p>
+                    <span>@Model.IntervalPrice</span> ريال
+                </div>
+                <div class="price-item">
+                    <p>حساب السلع</p>
+                    <span>@Model.ProductsPrice</span> ريال
+                </div>
+                <div class="price-item">
+                    <p>حساب الفعاليه</p>
+                    <span>@Model.EventPrice</span> ريال
+                </div>
+            </div>
+        </div>
+    }
+    <!-- check out data -->
+    <div class="container-lg mt-3">
+        <h5 class="mb-3 text-center">حساب الخروج</h5>
+        <div class="price-summary">
+            <div class="price-item">
+                <p>عدد الاطفال</p>
+                <span id="totalchildern">@Model.ChildernNumber</span>
+            </div>
+            <div class="price-item">
+                <p>مجموع</p>
+                <span id="totalPrice">0</span> ريال
+            </div>
+            <div class="price-item">
+                <p>الوقت بالدقائق</p>
+                <span id="TimeInMinutes">@Model.TotalMinutes</span> دقيقه
+            </div>
+            <div class="price-item">
+                <p>حساب الوقت</p>
+                <span id="IntervalPriceElem">0</span> ريال
+            </div>
+            <div class="price-item">
+                <p>حساب السلع</p>
+                <span id="productsPriceElem">0</span> ريال
+            </div>
+            @if (!Model.ActiveCheckIn)
+            {
+                <div class="price-item">
+                    <p>حساب الفعاليه</p>
+                    <span>@Model.EventPrice</span> ريال
+                </div>
+            }
+        </div>
+    </div>
+
+    <form asp-action="SaveCheckOut" method="post" id="savecheckout" class="mt-3">
+
+        <!-- Hidden input to hold ID -->
+        <input type="hidden" name="checkOut.Id" value="@Model.Id">
+
+        <!-- Hidden Input to send product-quantity data -->
+        <input type="hidden" id="selectedProducts" name="checkOut.SelectedProducts" value="" />
+
+        <!-- Hidden input to add checkintotal or not -->
+        <input type="hidden" id="AddCheckInPrice" name="checkOut.AddCheckInPrice" value="0"/>
+
+        <!-- Hidden input to store child notes -->
+        <div id="NotesContainer"></div>
+
+        <div class="form-group">
+            <label for="checkInTime" class="font-weight-bold">وقت الدخول</label>
+            <input readonly type="time" id="checkInTime" value="@Model.CheckIn" class="form-control shadow-sm" />
+        </div>
+        <div class="form-group">
+            <label for="ExpectedCheckout" class="font-weight-bold">وقت المتوقع للخروج</label>
+            <input readonly type="time" id="ExpectedCheckout" value="@Model.ExpectedCheckout" class="form-control shadow-sm" />
+        </div>
+        <div class="form-group">
+            <label for="ExpectedCheckout" class="font-weight-bold">وقت الفعلى للخروج</label>
+            <input type="time" id="ActualCheckout" name="checkOut.ActualCheckout" value="@Model.ActualCheckout" required class="form-control shadow-sm" onblur="calculate()" />
+            <div class="d-flex justify-content-end mt-2">
+                <button type="button" onclick="CurrentTime()" class="btn alert-success shadow-sm">الوقت الحالى</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="EventName" class="font-weight-bold">الفعالية</label>
+            <input readonly type="text" id="EventName" value="@(string.IsNullOrEmpty(Model.EventName) ? "لم يتم اختيار فعالية " : Model.EventName )" class="form-control shadow-sm" />
+        </div>
+  
+        <div class="form-group" id="paymentELM" style="display:none;">
+            <label for="paymentMethod" class="mt-2 font-weight-bold">طريقة الدفع</label>
+            <select id="paymentMethod" name="checkOut.CheckOutPayment" class="form-control shadow-sm">
+                <option value="">اختر وسيلة الدفع</option>
+                @foreach (var method in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>().ToList())
+                {
+                    <option value="@method">@method</option>
+                }
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-start mt-4">
+            <button type="submit" class="btn alert-primary shadow-sm me-2">تسجيل الخروج</button>
+            @if (Model.IsDebt)
+            {
+                <button type="button" id="addcheckinprice" class="btn alert-success shadow-sm" onclick="addcheckin()">أضافة حساب الدخول</button>
+                <button type="button" style="display:none;" id="removecheckinprice" class="btn alert-danger shadow-sm" onclick="removecheckin()">حذف حساب الدخول</button>
+            }
+        </div>
+
+    </form>
+
+    <div class="accordion mt-4" id="accordionExample">
+        <!-- Products Section -->
+        <div class="card shadow-sm">
+            <div class="card-header" id="headingProducts">
+                <h5 class="mb-0">
+                    <button class="btn font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#productsSection" aria-expanded="true" aria-controls="productsSection">
+                        المنتجات
+                    </button>
+                </h5>
+            </div>
+
+            <div id="productsSection" class="collapse show" aria-labelledby="headingProducts" data-parent="#accordionExample">
+                <div class="card-body">
+
+                    <!-- Search Bar -->
+                    <input type="text" id="searchBarProduct" placeholder="Search by name" class="form-control mb-4" onkeyup="filterProduct()" />
+
+                    <div id="productsection" class="product-cards-container d-flex flex-wrap justify-content-center">
+                        <!-- for products cards -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Children Section -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header" id="headingChildren">
+                <h5 class="mb-0">
+                    <button class="btn font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#childrenSection" aria-expanded="true" aria-controls="childrenSection">
+                        الأطفال
+                    </button>
+                </h5>
+            </div>
+
+            <div id="childrenSection" class="collapse show" aria-labelledby="headingChildren">
+
+                <!-- Search Bar -->
+                <input type="text" id="searchBar" placeholder="Search by name or ID" class="mt-4 form-control mb-4" onkeyup="filterChildren()" />
+
+                <div class="row g-1">
+
+                    <!-- Actual Data -->
+                    @if (Model.Childern != null && Model.Childern.Count > 0)
+                    {
+                        @foreach (var child in Model.Childern)
+                        {
+                            <div id="details-@child.ID" style="padding: 15px;" class="child-card-note col-12 col-md-6">
+                                <div class="card p-3 border rounded shadow-sm bg-light d-flex align-items-center">
+                                    <div class="d-flex align-items-start w-100">
+                                        <div class="flex-shrink-0">
+                                            <img src="~/images/Childrens/@child.ImageName" alt="@child.Name" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        </div>
+                                        <div class="ms-3 flex-grow-1">
+                                            <h5 class="mb-2 ch-name">@child.Name</h5>
+                                            <p class="text-muted small mt-2">كود: <span class="ch-id">@child.ID</span></p>
+                                            <textarea class="form-control child-note" data-child-id="@child.ID" style="resize: none;" rows="5" placeholder="اكتب ملاحظة إذا لزم الأمر..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const Ctime = '@DateTime.Now.ToString("HH:mm")';
+
+    function CurrentTime()
+    {
+        document.getElementById("ActualCheckout").value = Ctime;
+        calculate();
+    }
+</script>
+
+@section Scripts {
+    <script type="text/javascript">
+
+        const totalPriceElem = document.getElementById("totalPrice");
+
+        const IntervalPriceElem = document.getElementById("IntervalPriceElem");
+        const productsPriceElem = document.getElementById("productsPriceElem");
+
+        const paymentMethod = document.getElementById("paymentMethod");
+        const paymentELM = document.getElementById("paymentELM");
+        const ActualCheckout = document.getElementById("ActualCheckout");
+
+        const eventPrice = @(Model.ActiveCheckIn ? 0 : Model.EventPrice);
+        const productsprice_checkin = @(Model.ActiveCheckIn ? 0 : Model.ProductsPrice);
+        let productsPrice = 0;
+        let intervalPrice = 0;
+        let selectedProducts = [];
+        const childernnumber = @Model.ChildernNumber;
+        const checkintotal = @Model.CheckInTotal;
+        let addornot = 0;
+        const IsItSub = @((Model.PlanId != -1).ToString().ToLower());
+        const planId = @Model.PlanId;
+        const totalMinutes = @Model.TotalMinutes;
+
+        let baseTime;
+
+        function addcheckin() {
+            addornot = 1;
+            document.getElementById("addcheckinprice").style.display = 'none';
+            document.getElementById("removecheckinprice").style.display = 'block';
+            document.getElementById("AddCheckInPrice").value = 'True';
+            showTotal();
+        }
+
+        function removecheckin() {
+            addornot = 0;
+            document.getElementById("addcheckinprice").style.display = 'block';
+            document.getElementById("removecheckinprice").style.display = 'none';
+            document.getElementById("AddCheckInPrice").value = 'False';
+            showTotal();
+        }
+
+
+        // Get the form element
+        var form = document.getElementById('savecheckout');
+
+
+        window.onload = function () {
+            // Get the time values after page load
+            const checkInTime = document.getElementById("checkInTime").value;
+            const expectedCheckout = document.getElementById("ExpectedCheckout").value;
+
+            showTotal();
+
+            baseTime = expectedCheckout ? expectedCheckout : checkInTime;
+        };
+
+        // Create a connection to the hub
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/checkInOutHub")
+            .build();
+
+        // Function that the hub can call to broadcast messages
+        connection.on("CalculatedPrice", function (price, minutes) {
+
+            if (isNaN(price)) {
+                ActualCheckout.value = baseTime;
+                alert("حدث خطا فى حساب الوقت تاكد من وقت خروج و الدخول!!");
+            }
+            else if (price >= 0) {
+                intervalPrice = price;
+                document.getElementById("TimeInMinutes").innerHTML = minutes;
+                showTotal();
+            }
+            else {
+                intervalPrice = price;
+                document.getElementById("TimeInMinutes").innerHTML = minutes;
+                showTotal();
+
+                ActualCheckout.value = document.getElementById("ExpectedCheckout").value ? document.getElementById("ExpectedCheckout").value : '';
+            }
+        });
+
+        connection.on("CalculatedSubPrice", function (price, minutes) {
+
+            if (typeof price === "object") 
+            {
+                ActualCheckout.value = '';
+                alert("حدث خطا فى حساب الوقت تاكد من وقت خروج و الدخول!!");
+            }
+            else
+            {
+                intervalPrice = price;
+                document.getElementById("TimeInMinutes").innerHTML = minutes;
+                showTotal();
+            }
+        });
+
+        connection.on("ProductsSearchResult", function (products) {
+
+            const productsection = document.getElementById("productsection");
+
+            products.forEach(product => {
+
+                const productDiv = document.createElement("div");
+
+                productDiv.id = `prod-${product.id}`;
+                productDiv.classList.add('Not-Selected-product');
+
+                productDiv.innerHTML = `
+                                    <div class="product-card regular-card">
+                                                        <div class="image-wrapper">
+                                                            <img src="/images/Products/${product.imageName}" class="product-image" alt="${product.name}" />
+                                                        </div>
+                                                        <h5 class="product-name">${product.name}</h5>
+                                                        <p class="product-price text-success font-weight-bold">${product.price} ريال</p>
+                                                        <div class="input-group quantity-controls">
+                                                                            <button type="button" class="btn alert-secondary btn-minus" onclick="SubtractProductButton(${product.id})">-</button>
+                                                            <input id="inputproduct-${product.id}" readonly type="number" min="0" max="${product.quantity}" value="0" class="form-control text-center product-quantity shadow-sm" data-product-id="${product.id}" />
+                                                                    <button type="button" class="btn alert-secondary btn-plus" onclick="AddProductButton(${product.id})">+</button>
+                                                        </div>
+                                                    </div>
+                        `;
+
+                productsection.appendChild(productDiv);
+
+            });
+        });
+
+        // Start the connection
+        connection.start();
+
+        function timeToMinutes(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        function showpayment() {
+            paymentELM.style.display = 'block';
+            paymentMethod.required = true; 
+        }
+
+        function hidepayment() {
+            paymentELM.style.display = 'none';
+            paymentMethod.required = false;
+            paymentMethod.value = '';
+        }
+
+
+        // Send message function
+        function calculate() {
+            const checkouttime = ActualCheckout.value;
+            const checkInTime = document.getElementById("checkInTime").value;
+            const ExpectedCheckout = document.getElementById("ExpectedCheckout").value;
+
+            if (timeToMinutes(baseTime) < timeToMinutes(checkouttime)) {
+                if(IsItSub)
+                {
+                     connection.invoke("IntervalSubscriptionPrice", checkInTime, ExpectedCheckout, checkouttime, planId);
+                }
+                else{
+                      connection.invoke("IntervalPrice", checkInTime, ExpectedCheckout, checkouttime);
+                }
+            } else if (timeToMinutes(baseTime) == timeToMinutes(checkouttime)) {
+                intervalPrice = 0;
+                document.getElementById("TimeInMinutes").innerHTML = totalMinutes;
+                showTotal();
+            } else {
+                intervalPrice = 0;
+                document.getElementById("TimeInMinutes").innerHTML = 0;
+                showTotal();
+                ActualCheckout.value = baseTime;
+                document.getElementById("TimeInMinutes").innerHTML = totalMinutes;
+                alert("وقت الخروج يجب ان يكون بعد وقت الدخول");
+            }
+        }
+
+        // Add a submit event listener to the form
+        form.addEventListener('submit', function (event) {
+
+            event.preventDefault();
+
+            // Clear any existing inputs
+            const notesContainer = document.getElementById('NotesContainer');
+            notesContainer.innerHTML = '';
+
+            // Add a hidden input for each note
+            document.querySelectorAll('.child-note').forEach(noteElement => {
+                const childId = noteElement.getAttribute('data-child-id');
+                const noteText = noteElement.value.trim();
+                if (noteText) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'checkOut.ChildsNotes'; // Same name for all inputs
+                    input.value = `${childId}-${noteText}`;
+                    notesContainer.appendChild(input);
+                }
+            });
+
+
+            if (timeToMinutes(document.getElementById("checkInTime").value) == timeToMinutes(ActualCheckout.value)) {
+                event.preventDefault();
+                alert("وقت الخروج يجب ان يكون بعد وقت الدخول");
+            }else
+            {
+                this.submit();
+            }
+        });
+
+        function showTotal() {
+
+            IntervalPriceElem.textContent = intervalPrice;
+            productsPriceElem.textContent = productsprice_checkin + productsPrice;
+
+            var hideornot = productsprice_checkin + (checkintotal * addornot) + productsPrice + (eventPrice * childernnumber) + (intervalPrice * childernnumber);
+
+
+            totalPriceElem.textContent = hideornot;
+
+            if (hideornot > 0)
+                showpayment();
+            else
+                hidepayment();
+        }
+
+        function updateTotalPrice() {
+            productsPrice = 0; // Reset total price
+            selectedProducts = []; // Reset selected products array
+
+            document.querySelectorAll('.product-quantity').forEach(input => {
+                const quantity = parseInt(input.value);
+                if (quantity > 0) {
+                    const productId = input.getAttribute('data-product-id');
+                    const price = parseInt(input.closest('.product-card').querySelector('.product-price').textContent.replace(' ريال', '').trim());
+                    productsPrice += price * quantity; // Add to total price
+
+                    // Add product and quantity to selected products array
+                    selectedProducts.push(`${productId}-${quantity}`);
+                }
+            });
+
+            // Update the total price display
+            showTotal();
+
+            // Set the value of the hidden input to the selected products string
+            document.getElementById('selectedProducts').value = selectedProducts.join('|');
+        }
+
+        function SubtractProductButton(id) {
+
+            const input = document.getElementById(`inputproduct-${id}`);
+
+            if (input.value > 0) {
+                input.value = parseInt(input.value) - 1;
+                if (parseInt(input.value) === 0) {
+                    const id = input.getAttribute('data-product-id');
+                    const proddiv = document.getElementById(`prod-${id}`);
+                    proddiv.classList.add('Not-Selected-product');
+                }
+                updateTotalPrice();
+            }
+        }
+
+        function AddProductButton(id) {
+
+            const input = document.getElementById(`inputproduct-${id}`);
+
+            if (parseInt(input.getAttribute('max')) > parseInt(input.value)) {
+                if (parseInt(input.value) === 0) {
+                    const id = input.getAttribute('data-product-id');
+                    const proddiv = document.getElementById(`prod-${id}`);
+                    proddiv.classList.remove('Not-Selected-product');
+                }
+                input.value = parseInt(input.value) + 1;
+                updateTotalPrice();
+            }
+        }
+    </script>
+
+}
+
+<!-- for search -->
+<script>
+    function filterChildren() {
+        const searchText = document.getElementById('searchBar').value.toLowerCase();
+        const cards = document.querySelectorAll('.child-card-note');
+
+        cards.forEach(card => {
+            const name = card.querySelector('.ch-name').textContent.toLowerCase();
+            const id = card.querySelector('.ch-id').textContent.toLowerCase();
+
+            if (name.includes(searchText) || id.includes(searchText)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function filterProduct() {
+        const searchText = document.getElementById('searchBarProduct').value.toLowerCase();
+        const cards = document.querySelectorAll('.Not-Selected-product');
+
+        cards.forEach(card => {
+            card.remove();
+        });
+
+        const productsIds = document.getElementById("selectedProducts").value;
+        if (searchText.trim())
+            connection.invoke("ProductSearch", searchText, productsIds);
+    }
+    
+</script>
+
+<!-- for the price -->
+<style>
+    .total-price-display {
+        font-size: 1.5em;
+        font-weight: bold;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        width: fit-content;
+        margin-top: 5px;
+        display: inline-block;
+    }
+
+        /* Adding subtle shadow and scaling on hover for additional emphasis */
+        .total-price-display:hover {
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            transform: scale(1.05);
+            transition: all 0.2s ease-in-out;
+        }
+</style>
+
+<!-- for the childern and products cards -->
+<style>
+
+    .child-card-note {
+        margin-bottom: 1px; /* Adjust as needed */
+    }
+
+    .card {
+        margin: 0; /* Remove any additional card margin */
+    }
+
+    .product-cards-container, .child-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .product-card, .child-card {
+        width: 200px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+    }
+
+        .product-card:hover, .child-card:hover {
+            transform: scale(1.05);
+        }
+
+    .regular-card {
+        background-color: #f8f9fa;
+    }
+
+    .blacklisted-card {
+        background-color: #ffe6e6;
+        border: 2px solid #ff4d4d;
+    }
+
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .image-wrapper {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .product-image, .child-image {
+        width: auto;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-name, .child-name {
+        margin: 10px 0 5px;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .product-price, .child-status {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+
+    .quantity-controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    /* Responsive Styling */
+    @@media (max-width: 768px) {
+        .product-card, .child-card {
+            width: 100%;
+        }
+    }
+
+    .selected {
+        border: 2px solid blue !important;
+    }
+</style>
+
+<style>
+    .price-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+        width: 100%;
+        background: #f9f9f9; /* Light background */
+        border: 1px solid #ddd; /* Subtle border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow for card effect */
+        margin-top: 20px;
+    }
+
+    .price-item {
+        flex: 1; /* Each item takes equal space */
+        min-width: 120px; /* Prevent items from shrinking too much */
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+        .price-item span {
+            font-weight: bold;
+            color: #435ebe; /* Blue color for values */
+        }
+
+        .price-item p {
+            margin: 0;
+            font-size: 14px;
+            color: #333; /* Dark text for labels */
+        }
+</style>
+
+
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<!-- Bootstrap CSS -->
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">

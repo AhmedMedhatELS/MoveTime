@@ -1,0 +1,208 @@
+﻿@model HomeView
+
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+
+<div class="row">
+      <div class="col-6 col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-body px-3 py-4-5">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stats-icon" style="background-color:#25396f;">
+                            <i class="iconly-boldProfile"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h6 class="text-muted font-semibold">عدد الاطفال</h6>
+                        <h6 class="font-extrabold mb-0">@Model.TotalKids</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> 
+    <div class="col-6 col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-body px-3 py-4-5">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stats-icon" style="background-color:black;">
+                            <i class="iconly-boldProfile"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h6 class="text-muted font-semibold">القائمة السوداء</h6>
+                        <h6 class="font-extrabold mb-0">@Model.BlackList</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-body px-3 py-4-5">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stats-icon green">
+                            <i class="iconly-boldProfile"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h6 class="text-muted font-semibold">موافق عليهم</h6>
+                        <h6 class="font-extrabold mb-0">@Model.Approved</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3 col-md-6">
+        <div class="card">
+            <div class="card-body px-3 py-4-5">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stats-icon" style="background-color:yellow;">
+                            <i class="iconly-boldProfile"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h6 class="text-muted font-semibold">غير موافق عليهم</h6>
+                        <h6 class="font-extrabold mb-0">@Model.NotApproved</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>أرباح الأسبوع</h4>
+            </div>
+            <div class="card-body">
+                <div id="chart-profile-visit"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>الاطفال</h4>
+            </div>
+            <div class="card-body">
+                <div id="chart-visitors-profile"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>الاطفال المشتركة فى أشتراكات : @Model.KidsSub</h4>
+            </div>
+            <div class="card-body">
+                <div id="chart-visitors-profile-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+
+    <script>
+            var optionsProfileVisit = {
+            annotations: {
+                position: 'back'
+            },
+            dataLabels: {
+                enabled:false
+            },
+            chart: {
+                type: 'bar',
+                height: 300
+            },
+            fill: {
+                opacity:1
+            },
+            plotOptions: {
+            },
+            series: [{
+                name: 'رريال',
+                data: [
+                    @Model.WeekProfit[0],
+                    @Model.WeekProfit[1],
+                    @Model.WeekProfit[2],
+                    @Model.WeekProfit[3],
+                    @Model.WeekProfit[4],
+                    @Model.WeekProfit[5],
+                    @Model.WeekProfit[6]]
+            }],
+            colors: '#435ebe',
+            xaxis: {
+                categories: [
+                '@Model.WeekDaysName[0]',
+                '@Model.WeekDaysName[1]',
+                '@Model.WeekDaysName[2]',
+                '@Model.WeekDaysName[3]',
+                '@Model.WeekDaysName[4]',
+                '@Model.WeekDaysName[5]',
+                '@Model.WeekDaysName[6]']
+            },
+        }
+        let optionsVisitorsProfile  = {
+            series: [@Model.MaleKids, @Model.FemaleKids],
+            labels: ['ذكر', 'أنثى'],
+            colors: ['#435ebe','#55c6e8'],
+            chart: {
+                type: 'donut',
+                width: '100%',
+                height:'350px'
+            },
+            legend: {
+                position: 'bottom'
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '30%'
+                    }
+                }
+            }
+        }
+
+        let optionsVisitorsProfile2 = {
+            series: [@Model.MaleSub, @Model.FemaleSub],
+            labels: ['ذكر', 'أنثى'],
+            colors: ['#435ebe', '#55c6e8'],
+            chart: {
+                type: 'donut',
+                width: '100%',
+                height: '350px'
+            },
+            legend: {
+                position: 'bottom'
+            },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '30%'
+                    }
+                }
+            }
+        }
+
+      
+
+        var chartProfileVisit = new ApexCharts(document.querySelector("#chart-profile-visit"), optionsProfileVisit);
+        var chartVisitorsProfile = new ApexCharts(document.getElementById('chart-visitors-profile'), optionsVisitorsProfile)
+        var chartVisitorsProfile2 = new ApexCharts(document.getElementById('chart-visitors-profile-2'), optionsVisitorsProfile2)
+
+        chartProfileVisit.render();
+        chartVisitorsProfile.render();
+        chartVisitorsProfile2.render();
+    </script>
+
+}

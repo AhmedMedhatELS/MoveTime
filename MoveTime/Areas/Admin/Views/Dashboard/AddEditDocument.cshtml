@@ -1,0 +1,21 @@
+﻿@{
+    ViewData["Title"] = "رفع/تعديل الملف";
+}
+
+<div class="container mt-5">
+    <partial name="_StatusMessages"></partial>
+    <h2 class="text-center mb-4">رفع / تعديل ملف أخلاء الطرف</h2>
+
+    <div class="card shadow-sm p-4">
+        <form asp-action="AddEditDocument" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="fileInput" class="form-label">اختر الملف</label>
+                <input type="file" class="form-control" id="fileInput" name="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt" required>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn alert-primary px-4">رفع/تعديل الملف</button>
+            </div>
+        </form>
+    </div>
+</div>

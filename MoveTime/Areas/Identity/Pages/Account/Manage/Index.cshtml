@@ -1,0 +1,78 @@
+﻿@page
+@using Models
+@model IndexModel
+@{
+    ViewData["Title"] = $"الملف الشخصي";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<h3>@ViewData["Title"]</h3>
+<partial name="_StatusMessage" for="StatusMessage" />
+<div class="row">
+    <div class="col-md-6">
+        <!-- Profile Image Display -->
+        <div class="mb-3 mt-3 text-center">
+            <div class="image-wrapper">
+                <img id="profileImagePreview"
+                     src="~/images/users/@(Model.Input.ProfileImage == null ? "profile-circle.svg" : Model.Input.ProfileImage)"
+                     alt="صورة الملف الشخصي"
+                     class="img-fluid rounded-circle"
+                     style="width: 250px;height: 250px; cursor: pointer;"
+                     onclick="triggerFileInput()" />
+
+                <!-- Trash icon to reset profile image -->
+                @if (Model.Input.ProfileImage != null)
+                {
+                    <form method="post" asp-page-handler="ResetProfileImage" id="resetImageForm">
+                        <button type="submit" style="color:red; border:none;background-color:white;"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <form id="profile-form" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="form-floating mb-3">
+                <input type="hidden" asp-for="Username" class="form-control" placeholder="يرجى اختيار اسم المستخدم الخاص بك." disabled />
+                <label asp-for="Username" class="form-label"></label>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.FullName" class="form-control" placeholder="يرجى إدخال اسمك الكامل" />
+                <label asp-for="Input.FullName" class="form-label"></label>
+                <span asp-validation-for="Input.FullName" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
+                <input asp-for="Input.PhoneNumber" class="form-control" placeholder="يرجى إدخال رقم هاتفك." />
+                <label asp-for="Input.PhoneNumber" class="form-label"></label>
+                <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+            </div>
+
+            <!-- Hidden file input -->
+            <input type="file" id="imageInput" class="image-input" asp-for="Input.ImgFile" style="display:none;" onchange="previewImage(event)" />
+
+            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">حفظ</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Function to trigger the hidden file input
+        function triggerFileInput() {
+            document.getElementById('imageInput').click();
+        }
+
+        // Function to preview the selected image
+        function previewImage(event) {
+            const imagePreview = document.getElementById('profileImagePreview');
+            imagePreview.src = URL.createObjectURL(event.target.files[0]);
+            imagePreview.onload = () => {
+                URL.revokeObjectURL(imagePreview.src); // Free memory
+            };
+        }
+    </script>
+}

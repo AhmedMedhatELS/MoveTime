@@ -1,0 +1,195 @@
+﻿@using Utility
+@model Models.ViewModels.AdminSubscriptionView
+@{
+    ViewData["Title"] = "اضافة اشتراك";
+
+    var daysOfWeek = Enum.GetValues(typeof(Days)).Cast<Days>();   
+    var translations = DaysOfWeekTranslations.Translations;
+    var errormassages = (string?)TempData["ErrorMessage"];
+    var spliterror = errormassages == null ? null : errormassages.Split("<br/>");
+}
+<!-- Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (spliterror != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            @foreach(var massage in spliterror)
+        {
+            <br />
+                    <span class="me-auto">@massage</span>
+        }     
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+<div class="container mt-5 mb-5">
+    <h2 class="text-center mb-4">إضافة اشتراك جديد</h2>
+    <form asp-action="SaveSubscription" method="post">
+        <!-- Subscription Card -->
+        <div class="card shadow-sm p-4 mb-4">
+            <input type="hidden" asp-for="SubscriptionId" value="0" />
+
+            <div class="form-group mb-3">
+                <label asp-for="SubscriptionName" class="fw-bold">اسم الاشتراك</label>
+                <input asp-for="SubscriptionName" class="form-control" placeholder="أدخل اسم الاشتراك" />
+                <span asp-validation-for="SubscriptionName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="SubscriptionDescription" class="fw-bold">وصف الاشتراك</label>
+                <textarea asp-for="SubscriptionDescription" rows="5" class="form-control" placeholder="أدخل وصف الاشتراك"></textarea>
+                <span asp-validation-for="SubscriptionDescription" class="text-danger"></span>
+            </div>
+        </div>
+
+        <!-- Dynamic Notes Section -->
+        <div class="card shadow-sm p-4 mb-4">
+            <h5 class="card-title mb-3">ملاحظات الاشتراك</h5>
+            <div id="notesContainer" class="mb-3"></div>
+            <button type="button" class="btn alert-secondary w-100" id="addNoteBtn">إضافة ملاحظة جديدة</button>
+        </div>
+
+        <!-- Subscription Plan Section -->
+        <div class="card shadow-sm p-4 mb-4">
+            <h5 class="card-title mb-3">خطط الاشتراك</h5>
+            <div id="plansContainer" class="mb-3"></div>
+            <button type="button" class="btn alert-secondary w-100" id="addPlanBtn">إضافة خطة الاشتراك</button>
+        </div>
+
+        <button type="submit" class="btn alert-primary w-100 mt-3">حفظ الاشتراك</button>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+        <script>
+            // JavaScript to add new note fields dynamically
+            document.getElementById("addNoteBtn").addEventListener("click", function () {
+                var notesContainer = document.getElementById("notesContainer");
+                var noteItem = document.createElement("div");
+                noteItem.classList.add("note-item", "input-group", "mt-2");
+                noteItem.innerHTML = `
+                        <input name="SubscriptionNotes" class="form-control" placeholder="أدخل ملاحظة" required/>
+                    <button type="button" class="btn alert-danger btn-sm remove-note-btn">حذف</button>`;
+                notesContainer.appendChild(noteItem);
+                noteItem.querySelector(".remove-note-btn").onclick = () => noteItem.remove();
+            });
+
+                // JavaScript to add subscription plan fields dynamically
+            let planIndex = 0; // Add an index to keep track of plans
+    document.getElementById("addPlanBtn").addEventListener("click", function () {
+        var plansContainer = document.getElementById("plansContainer");
+        var planItem = document.createElement("div");
+        planItem.classList.add("plan-item", "border", "rounded", "p-3", "mt-3");
+
+        // Add the HTML structure with From/To fields initially visible
+        planItem.innerHTML = `
+            <div class="form-group mb-3">
+                <label for="Plans_${planIndex}__Price" class="fw-bold">السعر</label>
+                <input name="Plans[${planIndex}].Price" type="number" class="form-control" placeholder="أدخل السعر" required />
+            </div>
+            <div class="form-group mb-3">
+                <label for="Plans_${planIndex}__VisitsNumber" class="fw-bold">عدد الزيارات</label>
+                <input name="Plans[${planIndex}].VisitsNumber" type="number" class="form-control" placeholder="أدخل عدد الزيارات" required />
+            </div>
+             <div class="form-group mb-3">
+                <label for="Plans_${planIndex}__ActiveDays" class="fw-bold">صلاحية البرنامج</label>
+                <input name="Plans[${planIndex}].ActiveDays" type="number" class="form-control" placeholder="أدخل مدة تفعيل برنامج بالايام" required />
+            </div>
+            <div class="form-group mb-3">
+                <label>أيام الأسبوع</label>
+                <div class="d-flex flex-wrap">
+        @foreach (var day in daysOfWeek)
+        {
+            if (day == Days.AllDays) continue;
+            <div class="form-check" style="width: 23%; margin-right: 1%; margin-bottom: 10px;">
+                  <input type="checkbox" class="form-check-input" name="Plans[${planIndex}].SelectedDaysOfWeek" value="@day" id="day-@day-${planIndex}" />
+                  <label class="form-check-label" for="day-@day-${planIndex}">@translations[day]</label>
+             </div>              
+        }
+                </div>
+            </div>
+            <div class="form-check mb-3">
+                    <label class="form-check-label" for="${planIndex}-IsDuration">خطة ذات مدة؟</label>
+                <input type="checkbox" value="0" class="form-check-input" id="${planIndex}-IsDuration" name="Plans[${planIndex}].IsDuration" onclick="toggleDurationFields(this)" />
+            </div>
+            <div class="form-group plan-duration d-none">
+                <label>المدة</label>
+                    <input name="Plans[${planIndex}].Duration" type="number" class="form-control" placeholder="أدخل المدة بالساعات" required/>
+            </div>
+            <div class="form-group plan-times">
+                <label>من</label>
+                <input name="Plans[${planIndex}].From" type="time" class="form-control" required/>
+                <label>إلى</label>
+                <input name="Plans[${planIndex}].To" type="time" class="form-control" required/>
+            </div>
+            <button type="button" class="btn alert-danger btn-sm remove-plan-btn mt-3">حذف الخطة</button>
+        `;
+
+        // Append the new plan item
+        plansContainer.appendChild(planItem);
+
+        // Set the remove button event handler
+        planItem.querySelector(".remove-plan-btn").onclick = () => planItem.remove();
+        planIndex++; // Increment the index for the next plan
+    });
+
+
+        function toggleDurationFields(checkbox) {
+            const planItem = checkbox.closest(".plan-item");
+            const durationField = planItem.querySelector(".plan-duration");
+            const timeFields = planItem.querySelector(".plan-times");
+            if (checkbox.checked) {
+                durationField.classList.remove("d-none");
+                timeFields.classList.add("d-none");
+                checkbox.value = "true";
+            } else {
+                durationField.classList.add("d-none");
+                timeFields.classList.remove("d-none");
+                checkbox.value = "false";
+            }
+        }
+        // Function to validate the subscription form before submission
+function validateSubscriptionForm(event) {
+    const plansContainer = document.getElementById("plansContainer");
+    const plans = plansContainer.querySelectorAll(".plan-item");
+    const isValid = validatePlans(plans);
+
+    if (plans.length === 0 || !isValid) {
+        event.preventDefault(); // Prevent form submission
+        if (plans.length === 0) {
+            alert("يجب إضافة خطة واحدة على الأقل."); // Alert for no plans added
+        } else {
+            alert("يجب اختيار يوم واحد على الأقل لكل خطة."); // Alert for days selection
+        }
+    }
+}
+
+// Function to validate each plan for selected days
+function validatePlans(plans) {
+    let isValid = true;
+
+    plans.forEach(plan => {
+        const checkboxes = plan.querySelectorAll(`input[name^="Plans"][name$=".SelectedDaysOfWeek"]`);
+        const isChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+        
+        if (!isChecked) {
+            isValid = false;
+        }
+    });
+
+    return isValid;
+}
+
+// Attach validation function to the form's submit event
+document.querySelector("form").addEventListener("submit", validateSubscriptionForm);
+
+        </script>
+}

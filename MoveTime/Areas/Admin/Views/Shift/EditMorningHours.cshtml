@@ -1,0 +1,93 @@
+﻿@model Models.Shift
+@{
+    ViewData["Title"] = "تعديل ساعات الصباح";
+}
+
+<div class="container mt-4">
+    <!-- Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["ErrorMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <div class="card shadow-sm">
+        <div class="card-header bg text-dark">
+            <h5 class="mb-0">تعديل ساعات الصباح</h5>
+        </div>
+        <div class="card-body mt-3">
+            <form asp-action="EditMorningHours" method="post" class="row g-3" id="shiftForm">
+                <!-- Hidden field for ShiftId to ensure it's included when updating -->
+                <input type="hidden" asp-for="ShiftId" />
+
+                <input type="hidden" asp-for="ShiftName" />
+                
+                <!-- Start Time -->
+                <div class="col-md-6">
+                    <label asp-for="StartTime" class="form-label">بداية الفترة</label>
+                    <input asp-for="StartTime" type="time" class="form-control" id="startTime" required
+                           data-val="true" data-val-required="يجب إدخال توقيت بداية الفترة" />
+                    <span class="text-danger" id="startTimeError"></span>
+                </div>
+
+                <!-- End Time -->
+                <div class="col-md-6">
+                    <label asp-for="EndTime" class="form-label">نهاية الفترة</label>
+                    <input asp-for="EndTime" type="time" class="form-control" id="endTime" required
+                           data-val="true" data-val-required="يجب إدخال توقيت نهاية الفترة" />
+                    <span class="text-danger" id="endTimeError"></span>
+                </div>
+
+                <!-- Buttons -->
+                <div class="col-12 d-flex justify-content-between mt-4">
+                    <div></div>
+                    <button type="submit" class="alert alert-primary">
+                        <i class="bi bi-save me-2"></i>حفظ التعديلات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            $('#shiftForm').on('submit', function (event) {
+                let isValid = true;
+
+                // Clear any previous error messages
+                $('#startTimeError').text('');
+                $('#endTimeError').text('');
+
+                // Start Time validation
+                if (!$('#startTime').val()) {
+                    $('#startTimeError').text($('#startTime').attr('data-val-required'));
+                    isValid = false;
+                }
+
+                // End Time validation
+                if (!$('#endTime').val()) {
+                    $('#endTimeError').text($('#endTime').attr('data-val-required'));
+                    isValid = false;
+                }
+
+                // Prevent form submission if validation fails
+                if (!isValid) {
+                    event.preventDefault();
+                }
+            });
+        });
+    </script>
+}

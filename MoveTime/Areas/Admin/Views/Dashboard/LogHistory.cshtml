@@ -1,0 +1,263 @@
+﻿@model StatisticsTableView
+@{
+    ViewData["Title"] = "التسجيلات";
+}
+
+<div class="price-summary">
+    <div class="price-item">
+        <p>عدد الاطفال</p>
+        <span id="totalchildern">@Model.KidsNumber</span>
+    </div>
+    <div class="price-item">
+        <p>مجموع</p>
+        <span id="total">@Model.Total</span> ريال
+    </div>
+    <div class="price-item">
+        <p>المدفوع</p>
+        <span id="payed">@Model.Payed</span> ريال
+    </div>
+    <div class="price-item">
+        <p>الديون</p>
+        <span id="debt">@Model.Dept</span> ريال
+    </div>
+</div>
+
+<div class="container mt-4">
+    <!-- Filtration Section -->
+    <div class="filter-section bg-white p-4 mb-5 rounded shadow-sm border">
+        <h4 class="text-center mb-4 fw-bold">السجلات</h4>
+        <form id="carFilterForm" class="row g-4">
+            <div class="col-12">
+                <div class="row">
+                    <!-- Date Range Inputs -->
+                    <div class="col-md-4">
+                        <label for="fromDate" class="form-label fw-bold">من تاريخ</label>
+                        <input type="date" id="fromDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="toDate" class="form-label fw-bold">إلى تاريخ</label>
+                        <input type="date" id="toDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                    </div>
+
+                    <!-- Reset and Search Buttons -->
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" onclick="Reset()" class="btn alert-secondary w-50 me-2">إعادة</button>
+                        <button type="button" onclick="Search()" class="btn alert-primary w-50">بحث</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+
+<div class="container mt-5">
+    <!-- Logged-In Check-Ins Table -->
+    <div class="table-responsive shadow-sm">
+        <table id="loggedInTable" class="table table-hover table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th class="text-center">دخول</th>
+                    <th class="text-center">وقت الدخول</th>
+                    <th class="text-center">وقت الخروج</th>
+                    <th class="text-center">الأطفال المسجلين</th>
+                    <th class="text-center">حساب الدخول</th>
+                    <th class="text-center">حساب الخروج</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var check in Model.CheckViews)
+                {
+                    <tr>
+                        <td class="align-middle text-center">@check.CheckInBy</td>
+                        <td class="align-middle text-center">
+                            <input type="time" class="form-control text-center border-0 bg-light"
+                                   value="@check.CheckInTime" readonly />
+                        </td>
+                        <td class="align-middle text-center">
+                            <input type="time" class="form-control text-center border-0 bg-light"
+                                   value="@check.CheckOutTime" readonly />
+                        </td>
+
+                        <!-- Children List -->
+                        <td class="align-middle">
+                            <div class="d-flex flex-wrap justify-content-center gap-3">
+                                @foreach (var child in check.ChildChecks)
+                                {
+                                    <div class="text-center">
+                                        <img src="~/images/Childrens/@child.ImageName"
+                                             alt="@child.Name"
+                                             class="rounded-circle border shadow-sm"
+                                             style="width: 50px; height: 50px;" />
+                                        <p class="mt-2 mb-0" style="font-size: 0.9rem;">@child.Name</p>
+                                        <small class="text-muted">(@child.Id)</small>
+                                    </div>
+                                }
+                            </div>
+                        </td>
+
+                        <td class="align-middle text-center @(check.InDebt ? "Debt" : check.InTotal == 0 ? "" : "No-Debt")">@check.InTotal</td>
+                        <td class="align-middle text-center @(check.OutDebt ? "Debt" : check.OutTotal == 0 ? "" : "No-Debt")">@check.OutTotal</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const totalchildern = document.getElementById("totalchildern");
+    const total = document.getElementById("total");
+    const payed = document.getElementById("payed");
+    const debt = document.getElementById("debt");
+    const tableBody = document.querySelector("#loggedInTable tbody");
+</script>
+
+<script type="text/javascript">
+    // Create a connection to the hub
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/statisticsHub")
+        .build();
+
+    // Function that the hub can call to broadcast price
+    connection.on("LogHistorySearchResult", function (logHistory) {
+        ClearView();
+
+        totalchildern.innerHTML = logHistory.kidsNumber;
+        total.innerHTML = logHistory.total;
+        payed.innerHTML = logHistory.payed;
+        debt.innerHTML = logHistory.dept;
+
+        logHistory.checkViews.forEach(check => {
+
+            const newRow = document.createElement("tr");
+
+            newRow.innerHTML = `
+                                <td class="align-middle text-center">${check.checkInBy}</td>
+                            <td class="align-middle text-center">
+                                <input type="time" class="form-control text-center border-0 bg-light"
+                                       value="${check.checkInTime}" readonly />
+                            </td>
+                            <td class="align-middle text-center">
+                                <input type="time" class="form-control text-center border-0 bg-light"
+                                       value="${check.checkOutTime}" readonly />
+                            </td>
+
+                            <td class="align-middle">
+                                <div class="d-flex flex-wrap justify-content-center gap-3">
+                                        ${check.childChecks.map(child => `
+                                        <div class="text-center">
+                                            <img src="/images/Childrens/${child.imageName}"
+                                                 alt="${child.name}"
+                                                 class="rounded-circle border shadow-sm"
+                                                 style="width: 50px; height: 50px;" />
+                                            <p class="mt-2 mb-0" style="font-size: 0.9rem;">${child.name}</p>
+                                            <small class="text-muted">(${child.id})</small>
+                                        </div>
+                                    `).join("")}
+                                </div>
+                            </td>
+                             <td class="align-middle text-center ${check.inDebt ? "Debt" : check.inTotal == 0 ? "" : "No-Debt"}">${check.inTotal}</td>
+                            <td class="align-middle text-center ${check.outDebt ? "Debt" : check.outTotal == 0 ? "" : "No-Debt"}">${check.outTotal}</td>
+                            `;
+            tableBody.appendChild(newRow);
+        });
+
+    });
+
+    // Start the connection
+    connection.start();
+
+
+    function Search() {
+        const from = document.getElementById("fromDate").value;
+        const to = document.getElementById("toDate").value;
+
+        connection.invoke("LogHistorySearch", from, to);
+    }
+</script>
+
+<!-- for Reset -->
+<script>
+    function Reset() {
+        document.getElementById("fromDate").value = '';
+        document.getElementById("toDate").value = '';
+        ClearView();
+    }
+
+    function ClearView() {
+        totalchildern.innerHTML = 0;
+        total.innerHTML = 0;
+        payed.innerHTML = 0;
+        debt.innerHTML = 0;
+        tableBody.innerHTML = '';
+    }
+</script>
+
+<style>
+    .No-Debt{
+        background-color: #5ddab4 !important;
+    }
+
+    .Debt {
+        background-color: #f3616d !important;
+    }
+
+</style>
+
+<style>
+    .filter-section {
+        border: 1px solid #e6e6e6;
+        background-color: #f9f9f9;
+    }
+
+        .filter-section .form-label {
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .filter-section .btn {
+            border-radius: 30px;
+            font-weight: bold;
+        }
+</style>
+
+<!-- summary -->
+<style>
+    .price-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+        width: 100%;
+        background: #f9f9f9; /* Light background */
+        border: 1px solid #ddd; /* Subtle border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow for card effect */
+        margin-top: 20px;
+    }
+
+    .price-item {
+        flex: 1; /* Each item takes equal space */
+        min-width: 120px; /* Prevent items from shrinking too much */
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+        .price-item span {
+            font-weight: bold;
+            color: #435ebe; /* Blue color for values */
+        }
+
+        .price-item p {
+            margin: 0;
+            font-size: 14px;
+            color: #333; /* Dark text for labels */
+        }
+</style>

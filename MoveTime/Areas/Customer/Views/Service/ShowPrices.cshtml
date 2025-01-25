@@ -1,0 +1,164 @@
+﻿@model Models.ViewModels.PriceList
+@{
+    ViewData["Title"] = "قائمة الأسعار";
+}
+
+<div class="price-list-container">
+    <!-- Toggle Buttons -->
+    <div class="toggle-buttons">
+        <button onclick="showPrices('morning')" class="btn btn-primary">عرض أسعار الصباح</button>
+        <button onclick="showPrices('evening')" class="btn btn-primary">عرض أسعار المساء</button>
+        <button onclick="showPrices('all')" class="btn btn-primary">عرض الكل</button>
+    </div>
+
+    <!-- Morning Prices -->
+    <div id="morning-prices" class="price-section">
+        <h3 class="mb-3">@Model.MorningHeader</h3>
+        @foreach (var hour in Model.MorningHours)
+        {
+            <div class="hour-card">
+                <div class="hour-header">@hour.HoursHead</div>
+                <ul class="price-details">
+                    @foreach (var range in hour.HourRangePrices)
+                    {
+                        <li>@range</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <!-- Evening Prices -->
+    <div id="evening-prices" class="price-section">
+        <h3 class="mb-3">@Model.EveningHeader</h3>
+        @foreach (var hour in Model.EveningHours)
+        {
+            <div class="hour-card">
+                <div class="hour-header">@hour.HoursHead</div>
+                <ul class="price-details">
+                    @foreach (var range in hour.HourRangePrices)
+                    {
+                        <li>@range</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function showPrices(section) {
+        // Hide all sections initially
+        document.getElementById('morning-prices').classList.remove('active');
+        document.getElementById('evening-prices').classList.remove('active');
+
+        // Show the selected section
+        if (section === 'morning') {
+            document.getElementById('morning-prices').classList.add('active');
+        } else if (section === 'evening') {
+            document.getElementById('evening-prices').classList.add('active');
+        } else {
+            document.getElementById('morning-prices').classList.add('active');
+            document.getElementById('evening-prices').classList.add('active');
+        }
+    }
+
+    // Set default view to show all prices
+    showPrices('all');
+</script>
+
+
+
+
+
+
+
+<style>
+    /* Basic Reset */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* Container styling */
+    .price-list-container {
+        max-width: 600px;
+        margin: 20px auto;
+        font-family: Arial, sans-serif;
+        direction: rtl;
+    }
+
+    /* Toggle buttons styling */
+    .toggle-buttons {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .toggle-buttons .btn {
+        background-color: #007bff;
+        color: white;
+        padding: 8px 15px;
+        margin: 0 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .toggle-buttons .btn:hover {
+        background-color: #0056b3;
+    }
+
+    /* Section styling */
+    .price-section {
+        display: none;
+    }
+
+    .price-section.active {
+        display: block;
+    }
+
+    /* Card styling */
+    .hour-card {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: #f9f9f9;
+    }
+
+    .hour-header {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: #333;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .price-details {
+        list-style: none;
+        padding: 0;
+    }
+
+    .price-details li {
+        padding: 5px 0;
+        color: #555;
+        font-size: 0.95em;
+    }
+
+    /* Responsive styling */
+    @@media (max-width: 768px) {
+        .price-list-container {
+            padding: 0 20px;
+        }
+
+        .toggle-buttons .btn {
+            padding: 10px;
+            font-size: 0.9em;
+            margin: 5px 0;
+            width: 100%;
+        }
+    }
+</style>

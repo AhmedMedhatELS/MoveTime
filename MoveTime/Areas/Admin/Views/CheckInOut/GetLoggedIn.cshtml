@@ -1,0 +1,166 @@
+﻿@model List<CheckInTable>
+
+@{
+    ViewData["Title"] = "عرض الأطفال المسجلين الآن";
+}
+<div class="container mt-5">
+     <partial name="_StatusMessages"></partial>
+    <h2 class="mb-4 text-center">عرض الأطفال المسجلين الآن</h2>
+
+    <!-- Search Bar -->
+    <div class="form-group mb-4">
+        <input type="text"
+               id="searchInput"
+               class="form-control rounded-pill shadow-sm"
+               placeholder="ابحث بكود الخروج أو اسم الطفل أو كود الطفل"
+               onkeyup="filterTable()"
+               style="font-size: 1rem; padding: 0.8rem;" />
+    </div>
+
+    <!-- Logged-In Check-Ins Table -->
+    <div class="table-responsive shadow-sm">
+        <table id="loggedInTable" class="table table-hover table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th class="text-center">كود الخروج</th>
+                    <th class="text-center">دخول</th>
+                    <th class="text-center">وقت الدخول</th>
+                    <th class="text-center">الوقت المتوقع للخروج</th>
+                    <th class="text-center">الأطفال المسجلين</th>
+                    <th class="text-center">خروج</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var check in Model)
+                {
+                    <tr>
+                        <!-- Check-In Details -->
+                        <td class="align-middle text-center">@check.Id</td>
+                        <td class="align-middle text-center">@check.CheckInBy</td>
+                        <td class="align-middle text-center">
+                            <input type="time" class="form-control text-center border-0 bg-light"
+                                   value="@check.CheckInTime" readonly />
+                        </td>
+                        <td class="align-middle text-center">
+                            <input type="time" class="form-control text-center border-0 bg-light"
+                                   value="@check.CheckOutTime" readonly />
+                        </td>
+
+                        <!-- Children List -->
+                        <td class="align-middle">
+                            <div class="d-flex flex-wrap justify-content-center gap-3">
+                                @foreach (var child in check.ChildChecks)
+                                {
+                                    <div class="text-center">
+                                        <img src="~/images/Childrens/@child.ImageName"
+                                             alt="@child.Name"
+                                             class="rounded-circle border shadow-sm"
+                                             style="width: 50px; height: 50px;" />
+                                        <p class="mt-2 mb-0" style="font-size: 0.9rem;">@child.Name</p>
+                                        <small class="text-muted">(@child.Id)</small>
+                                    </div>
+                                }
+                            </div>
+                        </td>
+
+                        <!-- Logout Action -->
+                        <td class="align-middle text-center">
+                            <a asp-action="CheckOut" asp-route-id="@check.Id" class="btn alert-danger btn-sm rounded-pill shadow-sm">
+                                    تسجيل الخروج
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- JavaScript for Search Functionality -->
+<script>
+    function filterTable() {
+        const input = document.getElementById("searchInput").value.toLowerCase();
+        const table = document.getElementById("loggedInTable");
+        const rows = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName("td");
+            let match = false;
+
+            // Check ID and children names/IDs for matching text
+            if (cells[0] && cells[0].innerText.toLowerCase().includes(input)) match = true;
+            if (cells[4] && cells[4].innerText.toLowerCase().includes(input)) match = true;
+
+            rows[i].style.display = match ? "" : "none";
+        }
+    }
+</script>
+
+@section Scripts {
+  
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/checkInOutHub")
+            .build();
+
+       
+        // Listen for 'ShowNewCheckIn' event
+        connection.on("ShowNewCheckIn", function (inTable) {
+            const tableBody = document.querySelector("#loggedInTable tbody");
+            console.log(inTable);
+            // Create a new row for the Check-In data
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                        <td class="align-middle text-center">${inTable.id}</td>
+                                        <td class="align-middle text-center">${inTable.checkInBy}</td>
+                        <td class="align-middle text-center">
+                            <input type="time" class="form-control text-center border-0 bg-light"
+                                   value="${inTable.checkInTime}" readonly />
+                        </td>
+                        <td class="align-middle text-center">
+                            <input type="time" class="form-control text-center border-0 bg-light"
+                                   value="${inTable.checkOutTime}" readonly />
+                        </td>
+                        <td class="align-middle">
+                            <div class="d-flex flex-wrap justify-content-center gap-3">
+                                ${inTable.childChecks.map(child => `
+                                    <div class="text-center">
+                                        <img src="/images/Childrens/${child.imageName}"
+                                             alt="${child.name}"
+                                             class="rounded-circle border shadow-sm"
+                                             style="width: 50px; height: 50px;" />
+                                        <p class="mt-2 mb-0" style="font-size: 0.9rem;">${child.name}</p>
+                                        <small class="text-muted">(${child.id})</small>
+                                    </div>
+                                `).join("")}
+                            </div>
+                        </td>
+                        <td class="align-middle text-center">
+                             <a href="/Admin/CheckInOut/CheckOut/${inTable.id}" class="btn alert-danger btn-sm rounded-pill shadow-sm">
+                                تسجيل الخروج
+                             </a>
+                        </td>
+                    `;
+            tableBody.appendChild(newRow);
+        });
+
+          // Listen for 'RemoveLoggedOutCheckIn' event
+        connection.on("RemoveLogged", function (id) {
+            const tableBody = document.querySelector("#loggedInTable tbody");
+            const rows = tableBody.getElementsByTagName("tr");
+
+            // Find the row that matches the ID
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName("td");
+                if (cells.length > 0 && cells[0].innerText == id) {
+                    tableBody.removeChild(rows[i]); // Remove the row
+                    break;
+                }
+            }
+        });
+
+        connection.start();
+    </script>
+}
+

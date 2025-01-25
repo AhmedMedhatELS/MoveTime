@@ -1,0 +1,215 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Models;
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var user = await UserManager.GetUserAsync(User);
+
+                <div class="col-12 col-lg-3">
+                    <div class="card">
+                        <div class="card-body py-0 px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-xl">
+                                    <a id="manage" asp-area="Identity" asp-page="/Account/Manage/Index" title="إدارة الحساب" style="text-decoration:none;">
+                                        <img src="~/images/users/@(user?.ProfileImage == null ? "profile-circle.svg" : user.ProfileImage)" alt="Face 1">
+                                    </a>
+                                </div>
+                                <div class="ms-3 name">
+                                    <a id="manage" asp-area="Identity" asp-page="/Account/Manage/Index" title="إدارة الحساب" style="text-decoration:none;">
+                                        <h5 class="font-bold mb-0" style="white-space: nowrap;">@user?.FullName</h5> <!-- Name stays on one line -->
+                                    </a>
+                                    <form id="logoutForm" class="form-inline d-inline text-muted mb-0" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                                        <button id="logout" type="submit" class="nav-link btn btn-link border-0 p-0">تسجيل الخروج</button> <!-- Logout in Arabic -->
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <a href="/Admin/CheckInOut/GetLoggedIn" class="card-header">
+                            <h4>المسجلين الان</h4>
+                        </a>
+                        <div id="cont-leftbar" class="message-container card-content pb-4">
+                        </div>
+                    </div>
+                </div>
+}
+
+<script>
+    // Create a connection to the hub
+    const connectionLeftbar = new signalR.HubConnectionBuilder()
+        .withUrl("/loggedInHub")
+        .build();
+
+    connectionLeftbar.on("LoggedInResult", function (children) {
+
+        const childrenContinour = document.getElementById("cont-leftbar");
+
+        children.forEach(child => {
+            const childDiv = document.createElement("div");
+
+            childDiv.id = `card-${child.id}`;
+
+            //childDiv.classList.add('warning-status');
+
+            childDiv.innerHTML = `
+                <a href="/Admin/CheckInOut/CheckOut/${child.id}" class="recent-message d-flex px-4 py-3">
+                    <div class="avatar avatar-lg">
+                       <img src="/images/Childrens/${child.imageName}">
+                    </div>
+                    <div class="name ms-4">
+                        <h5 class="mb-1">${child.name}</h5>
+                        <h6 class="text-muted mb-0">
+                            ${child.checkOutTime}
+                           <span class="status-circle-${child.status == 0 ? "yellow" : child.status == 1 ? "green" : "red"}"></span>
+                        </h6>
+                    </div>
+                </a>
+                            `;
+
+            childrenContinour.appendChild(childDiv);
+        });
+
+    });
+
+    connectionLeftbar.on("ChildrenExceededTimeResult", function (children) {
+        const childrenContinour = document.getElementById("cont-leftbar");
+
+        children.forEach(child => {
+
+            const existingCard = document.getElementById(`card-${child.id}`);
+            if (existingCard) {
+                existingCard.remove();
+            }
+
+            const childDiv = document.createElement("div");
+
+            childDiv.id = `card-${child.id}`;
+
+            childDiv.classList.add('warning-status');
+
+            childDiv.innerHTML = `
+                    <a href="/Admin/CheckInOut/CheckOut/${child.id}" class="recent-message d-flex px-4 py-3">
+                        <div class="avatar avatar-lg">
+                           <img src="/images/Childrens/${child.imageName}">
+                        </div>
+                        <div class="name ms-4">
+                            <h5 class="mb-1">${child.name}</h5>
+                            <h6 class="text-muted mb-0">
+                                ${child.checkOutTime}
+                               <span class="status-circle-${child.status == 0 ? "yellow" : child.status == 1 ? "green" : "red"}"></span>
+                            </h6>
+                        </div>
+                    </a>
+                                `;
+
+            childrenContinour.prepend(childDiv);
+        });
+
+        if (children.length > 0 && !isConditionMet) {
+            isConditionMet = true;
+            startTimer()
+        }
+    });
+
+    connectionLeftbar.on("RemoveLoggedLeftBar", function (id) {
+        document.getElementById("card-" + id).remove();
+    });
+
+    // Start the connection
+    //connectionLeftbar.start();
+
+    connectionLeftbar.start()
+        .then(function () {
+            // Safely invoke methods like LoggedIn
+            connectionLeftbar.invoke("LoggedIn");
+        })
+        .catch(function (err) {
+            console.error("Error while starting connection: " + err);
+        });
+
+    let isConditionMet = false; // This will be the flag for the condition
+
+    function repeatFunction() {
+        if (!isConditionMet) { 
+            connectionLeftbar.invoke("IsAnyOneExceededItsTime");
+        }
+        } 
+
+    setInterval(repeatFunction, 10000);
+
+    // Function to trigger the action after 1 minute
+    function startTimer() {
+        setTimeout(() => {
+            const cards = document.querySelectorAll('.warning-status');
+
+            cards.forEach(card => {
+                card.classList.remove('warning-status');
+            });
+
+            isConditionMet = false;  // Reset condition
+
+        }, 10000); // 1 minute in milliseconds
+    }
+
+</script>
+
+<style>
+    .message-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+   .status-circle-red {
+    width: 10px;
+    height: 10px;
+    background-color: #ff7976;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 10px; /* Space between the text and the circle */
+    vertical-align: middle; /* Align with the text */
+    
+    animation: blink 1.5s infinite; /* Apply the blinking animation */
+}
+
+    .warning-status {
+        background-color: #ff7976;
+        
+
+        animation: blink 1.5s infinite; /* Apply the blinking animation */
+    }
+
+    .status-circle-yellow {
+        width: 10px;
+        height: 10px;
+        background-color: #f1c40f;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 10px; /* Space between the text and the circle */
+        vertical-align: middle; /* Align with the text */
+    }
+
+    .status-circle-green {
+        width: 10px;
+        height: 10px;
+        background-color: #5ddab4;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 10px; /* Space between the text and the circle */
+        vertical-align: middle; /* Align with the text */
+    }
+
+/* Keyframes for blinking effect */
+@@keyframes blink {
+    0% {
+        opacity: 0; /* Invisible at the start */
+    }
+    50% {
+        opacity: 1; /* Fully visible at the halfway point */
+    }
+    100% {
+        opacity: 0; /* Invisible again at the end */
+    }
+}
+</style>

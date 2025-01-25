@@ -1,0 +1,102 @@
+﻿@using Models.ViewModels
+
+@model ChooseView
+
+@{
+    ViewData["Title"] = "اختيار الخطة";
+
+    var errorsList = (TempData["ErrorMessage"] as string)?.Split("-");
+}
+
+<div class="choose-plan-container mb-4">
+
+    <!-- Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (errorsList != null)
+    {
+        foreach (var error in errorsList)
+        {
+            <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+                <span class="me-auto">@error</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+    }
+
+    <h1 class="text-center my-4">اختيار الخطة</h1>
+
+    <div id="subscriptionsAccordion" class="accordion mt-5">
+        @foreach (var subscription in Model.ChildSubscriptions)
+        {
+            <div class="accordion-item mb-3">
+                <h2 class="accordion-header" id="heading-@subscription.Name.GetHashCode()">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@subscription.Name.GetHashCode()" aria-expanded="false" aria-controls="collapse-@subscription.Name.GetHashCode()">
+                        @subscription.Name
+                    </button>
+                </h2>
+                <div id="collapse-@subscription.Name.GetHashCode()" class="accordion-collapse collapse" aria-labelledby="heading-@subscription.Name.GetHashCode()" data-bs-parent="#subscriptionsAccordion">
+                    <div class="accordion-body p-3">
+                        @foreach (var plan in subscription.ChoosePlaniews)
+                        {
+                            <div class="card plan-card mb-3">
+                                <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-center">
+                                    <div class="plan-info">
+                                        <p class="card-text"><strong>سعر:</strong> @plan.Price ريال</p>
+                                        <p class="card-text"><strong>عدد الزيارات:</strong> @plan.VisitsNumber</p>
+                                        <p class="card-text"><strong>الأيام النشطة:</strong> @plan.ActiveDays</p>
+                                        <p class="card-text"><strong>أيام الأسبوع:</strong> @plan.DaysOfWeek</p>
+                                        @if (plan.IsDuration)
+                                        {
+                                            <p class="card-text"><strong>المدة:</strong> @plan.Duration ساعات</p>
+                                        }
+                                        else
+                                        {
+                                            <p class="card-text"><strong>من:</strong> @plan.From <strong>إلى:</strong> @plan.To</p>
+                                        }
+                                    </div>
+                                    <a href="@Url.Action("SubscriptionBill", "Child", new { ChildId = Model.ChildId, PlanId = plan.Id })" class="btn alert-primary mt-3 mt-md-0">
+                                        اختر هذه الخطة
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Styles -->
+<style>
+    .choose-plan-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .accordion-button {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    .plan-card {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+    }
+    .plan-card:hover {
+        transform: scale(1.02);
+    }
+    .card-body {
+        gap: 15px;
+    }
+    .plan-info p {
+        margin: 0;
+    }
+</style>

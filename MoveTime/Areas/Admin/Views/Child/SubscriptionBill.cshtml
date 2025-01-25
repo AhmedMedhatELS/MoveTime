@@ -1,0 +1,205 @@
+﻿@using Models.ViewModels
+@using Utility
+@model SubscriptionBillView
+
+@{
+    ViewData["Title"] = "فاتورة الاشتراك";
+}
+
+<div class="subscription-bill-container mb-4">
+    <h1 class="text-center my-4 mb-5">@Model.BillHeader</h1>
+
+    <!-- Bill Details Section -->
+    <div class="bill-details">
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <p><strong>اسم الطفل:</strong> @Model.ChildName</p>
+            <p><strong>كود:</strong> @Model.ChildId</p>
+        </div>
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <p><strong>رقم التواصل:</strong> @Model.ContactNumber</p>
+            <p><strong>عدد الزيارات:</strong> @Model.VisitsNumber</p>
+        </div>
+        <p><strong>وصف الاشتراك:</strong> @Model.SubscriptionDescription</p>
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <p><strong>أيام الأسبوع:</strong> @Model.DaysOfWeek</p>
+            <p><strong>المدة:</strong> @(Model.IsDuration ? $"{Model.Duration} ساعات" : $"من {Model.From} إلى {Model.To}")</p>
+        </div>
+        <div class="print" style="display:none;">
+            <p><strong>بداية الاشتراك:</strong><span id="print-begin"> @Model.SubscriptionBegin.ToString("yyyy-MM-dd") </span></p>
+            <p><strong>نهاية الاشتراك:</strong><span id="print-end"> @Model.SubscriptionEnd.ToString("yyyy-MM-dd")</span></p>
+        </div>
+        <div class="print" style="display:none;">
+            <p><strong>الإجمالي:</strong><span> @Model.Total </span></p>
+            <p><strong>المدفوع:</strong><span id="print-payed"> @Model.Payed </span></p>
+            <p><strong>المتبقي:</strong><span id="print-remaining"> @Model.Remaining </span></p>
+        </div>
+        <p class="print-pay" style="display:none;"><strong>طريقة الدفع:</strong><span id="print-pay"> @PaymentMethod.كاش </span></p>
+    </div>
+
+    <!-- Payment Section -->
+    <form method="post" enctype="multipart/form-data" asp-action="ConfirmSubscriptionBill">
+        <input type="hidden" asp-for="ChildId" class="no-print" />
+        <input type="hidden" asp-for="PlanId" class="no-print" />
+        <input type="hidden" asp-for="VisitsNumber" class="no-print" />
+
+        <div class="mb-3 no-print">
+            <label asp-for="SubscriptionBegin" class="form-label">بداية الاشتراك</label>
+            <input asp-for="SubscriptionBegin" class="form-control" type="date" oninput="printbegin()" />
+        </div>
+
+        <div class="mb-3 no-print">
+            <label asp-for="SubscriptionEnd" class="form-label">نهاية الاشتراك</label>
+            <input asp-for="SubscriptionEnd" class="form-control" type="date" oninput="printend()" />
+        </div>
+
+        <div class="mb-3 no-print">
+            <label asp-for="Total" class="form-label">الإجمالي</label>
+            <input asp-for="Total" class="form-control" readonly />
+        </div>
+
+        <div class="mb-3 no-print">
+            <label asp-for="Payed" class="form-label">المدفوع</label>
+            <input asp-for="Payed" class="form-control" oninput="calculateRemaining()" />
+        </div>
+
+        <div class="mb-3 no-print">
+            <label asp-for="Remaining" class="form-label">المتبقي</label>
+            <input asp-for="Remaining" class="form-control" readonly />
+        </div>
+
+        <div class="mb-3 no-print">
+            <label asp-for="BillImageFile" class="form-label">
+                صورة الفاتورة <span class="text-muted">(اختياري)</span>
+            </label>
+            <input type="file" asp-for="BillImageFile" class="form-control" />
+        </div>
+
+        <div class="mb-3 no-print">
+            <label asp-for="PaymentMethod" class="form-label">طريقة الدفع</label>
+            <select asp-for="PaymentMethod" class="form-select" oninput="printpay()">
+                @foreach (var method in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>().ToList())
+                {
+                    if (method == PaymentMethod.دین) continue;
+                    <option value="@method">@method</option>
+                }
+            </select>
+        </div>
+        @if (Model.Notes.Count > 0)
+        {
+            <p>
+                <strong>الملاحظات:</strong>
+                @foreach (var note in Model.Notes)
+                {
+                    <br />
+                    @("- " + note)
+                }
+            </p>
+        }
+        <!-- Submit and Print Button -->
+        <div class="d-flex justify-content-between align-items-center mt-4 no-print">
+            <button type="submit" class="btn alert-success">تأكيد الاشتراك</button>
+            <button type="button" onclick="printPDF()" class="btn alert-primary">طباعة PDF</button>
+        </div>
+
+        <!-- Signature Section -->
+        <div class="signature-area mt-0 text-start">
+            <hr />
+            <p>توقيع الوالد/ة:</p>
+        </div>
+    </form>
+</div>
+
+<!-- Styles -->
+<style>
+    .subscription-bill-container {
+        max-width: 800px;
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+    }
+    .bill-details p, .signature-area {
+        font-size: 1rem;
+        color: #333;
+    }
+    .signature-area {
+        min-height: 60px;
+        padding: 10px 0;
+    }
+
+    /* Print media styling */
+    @@media print {
+        .print-pay{
+            display : block !important;
+        }
+        .print{
+            display: flex !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+        /* Hide everything except the main bill container */
+        body * {
+            visibility: hidden;
+        }
+        /* Remove page breaks and prevent splitting content across pages */
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+        .subscription-bill-container, .subscription-bill-container * {
+            visibility: visible;
+        }
+        .subscription-bill-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
+        }
+    }
+</style>
+
+<!-- JavaScript for Calculating Remaining Amount -->
+<script>
+    function calculateRemaining() {
+        const total = parseInt(document.getElementById('Total').value) || 0;
+        const payed = parseInt(document.getElementById('Payed').value) || 0;
+        if (payed > total || payed < 0) {
+            document.getElementById('Remaining').value = (0).toFixed(0);
+            document.getElementById('Payed').value = (total).toFixed(0);
+
+            document.getElementById('print-payed').textContent = (total).toFixed(0);
+            document.getElementById('print-remaining').textContent = (0).toFixed(0);
+        }
+        else { 
+            document.getElementById('print-payed').textContent = (payed).toFixed(0);
+            document.getElementById('print-remaining').textContent = (total - payed).toFixed(0);
+
+            document.getElementById('Remaining').value = (total - payed).toFixed(0);
+        }
+    }
+
+    function printbegin() {
+        document.getElementById('print-begin').textContent = document.getElementById('SubscriptionBegin').value;
+    }
+
+    function printend() {
+        document.getElementById('print-end').textContent = document.getElementById('SubscriptionEnd').value;
+    }
+
+    function printpay(){
+        document.getElementById('print-pay').textContent = document.getElementById('PaymentMethod').value;
+    }
+
+    function printPDF() {
+        window.print();
+    }
+</script>

@@ -1,0 +1,86 @@
+﻿@using Models
+@using Utility
+@model List<Subscription>
+@{
+    ViewData["Title"] = "عرض الاشتراكات";
+}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">قائمة الاشتراكات</h2>
+    <div class="row g-4">
+        @foreach (var subscription in Model)
+        {
+            <div class="col-12">
+                <div class="card shadow-lg border-0 rounded-lg">
+                    <div class="card-header bg btn-primary text-white p-3 text-center">
+                        <h4 class="card-title mb-0">@subscription.Name</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="card-text text-muted">@subscription.Description</p>
+
+                        <!-- Plans Section -->
+                        <div class="mb-4">
+                            <h5 class="text-secondary">الخطط</h5>
+                            @if (subscription.Plans.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var plan in subscription.Plans)
+                                    {
+                                        <div class="list-group-item bg-light mb-2 rounded p-3">
+                                            <p class="mb-1">
+                                                <strong>السعر:</strong> @plan.Price ريال &nbsp; | &nbsp;
+                                                <strong>عدد الزيارات:</strong> @plan.VisitsNumber &nbsp; | &nbsp;
+                                                <strong>مدة الاشتراك:</strong> @plan.ActiveDays يوم&nbsp; | &nbsp;
+
+                                                @if (plan.IsDuration)
+                                                {
+                                                    <strong>المدة:</strong> @(plan.Duration) <span>ساعات</span>
+
+                                                }
+                                                else
+                                                {
+                                                    <strong>من:</strong> @(DateTime.Today.Add(plan.From.GetValueOrDefault()).ToString("hh:mm tt")) <span>&nbsp; | &nbsp;</span>
+                                                    <strong>إلى:</strong> @(DateTime.Today.Add(plan.To.GetValueOrDefault()).ToString("hh:mm tt"))
+                                                }
+                                            </p>
+                                            <p class="mb-1">
+                                                @{
+                                                    var translations = DaysOfWeekTranslations.Translations;
+                                                    List<string> daysInArabic = [];
+                                                    foreach (var day in plan.DaysOfWeek)
+                                                        daysInArabic.Add(translations[day]);
+                                                    <strong>أيام الأسبوع:</strong> @string.Join(", ", daysInArabic)
+                                                }
+                                            </p>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted">لا توجد خطط</p>
+                            }
+                        </div>
+
+                        <!-- Notes Section -->
+                        <div>
+                            <h5 class="text-secondary">ملاحظات</h5>
+                            @if (subscription.Notes.Any())
+                            {
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var note in subscription.Notes)
+                                    {
+                                        <li class="list-group-item bg-light text-secondary rounded my-1 p-2">@note.Note</li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p class="text-muted">لا توجد ملاحظات</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

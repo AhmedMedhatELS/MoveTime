@@ -1,0 +1,177 @@
+﻿@model NewChildUser
+
+@{
+    ViewData["Title"] = "أضافة طفل";
+
+    var genders = Enum.GetValues(typeof(Gender)).Cast<Gender>();
+    var gendertranslations = GenderTranslations.Translations;
+}
+<div class="container mt-0">
+    <!-- Status Messages -->
+    <partial name="_StatusMessages"></partial>
+
+    <h2 class="text-center mb-4">إضافة طفل جديد</h2>
+
+    <form id="addChildForm" method="post" enctype="multipart/form-data">
+        <!-- Child Section -->
+        <div class="card mb-4 shadow border-0 rounded">
+            <div class="card-header bg alert-secondary text-dark text-center">معلومات الطفل</div>
+            <div class="card-body mt-5">
+                <div class="row mb-3">
+                    <!-- Child Image Upload -->
+                    <div class="col-md-4 text-center">
+                        <img id="childImagePreview" src="~/images/Childrens/profile-circle.svg" alt="Child Image" class="img-fluid" style="max-height: 200px; width: 100%; height: 100%; object-fit: contain;" />
+                        <div class="mt-2">
+                            <input type="file" id="childImageInput" name="ChildImageFile" class="form-control" accept=".jpg,.jpeg,.png" required data-val="true" data-val-required="يرجى اختيار صورة للطفل" onchange="previewImage('childImagePreview', this)" />
+                        </div>
+                    </div>
+                    <!-- Child Details -->
+                    <div class="col-md-8">
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">
+                                الاسم
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" asp-for="Name" class="form-control" required />
+                        </div>
+
+                        <!-- National ID -->
+                        <div class="mb-3">
+                            <label asp-for="NationalId" class="form-label">
+                                رقم الهوية الوطنية
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" asp-for="NationalId" class="form-control" required />
+                        </div>
+
+                        <!-- BirthDay -->
+                        <div class="mb-3">
+                            <label asp-for="BirthDay" class="form-label">
+                                تاريخ الميلاد
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" asp-for="BirthDay" class="form-control" value="" onchange="calculateAge()" required />
+                        </div>
+
+                        <!-- Age (Read-only) -->
+                        <div class="mb-3">
+                            <label>العمر (بالسنوات)</label>
+                            <input type="number" asp-for="Oldyears" class="form-control" readonly />
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="mb-3">
+                            <label asp-for="Gender" class="form-label">
+                                الجنس
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="Gender" class="form-control" required>
+                                <option value="" selected>اختيار الجنس</option>
+                                @foreach (var gender in genders)
+                                {
+                                    <option value="@gender">@gendertranslations[gender]</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Phone and WhatsApp -->
+                        <div class="mb-3">
+                            <label asp-for="WhatsappNumber" class="form-label">
+                                رقم الواتساب
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" asp-for="WhatsappNumber" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Phone" class="form-label">رقم هاتف آخر (اختياري)</label>
+                            <input type="text" asp-for="Phone" class="form-control" />
+                        </div>
+
+                        <!-- Disclaimer Image -->
+                        <div class="mb-3">
+                            <label asp-for="DisclaimerImage" class="form-label">
+                                صورة اخلاء المسؤلية
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" id="disclaimerImage" name="DisclaimerImage" class="form-control" accept=".jpg,.jpeg,.png" required data-val="true" data-val-required="يرجى اختيار صورة إخلاء المسؤولية" onchange="previewImage('disclaimerImage', this)" />
+                        </div>
+
+                        <!-- Health Condition -->
+                        <div class="mb-3">
+                            <label>هل لديه حالة صحية؟</label>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="HaveHealthCondition" id="HealthConditionYes" value="true" class="form-check-input" onclick="toggleField('HealthCondition', true)" />
+                                <label for="HealthConditionYes" class="form-check-label">نعم</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="HaveHealthCondition" checked id="HealthConditionNo" value="false" class="form-check-input" onclick="toggleField('HealthCondition', false)" />
+                                <label for="HealthConditionNo" class="form-check-label">لا</label>
+                            </div>
+                            <textarea asp-for="HealthCondition" class="form-control mt-2" id="HealthCondition" style="display:none;" placeholder="أدخل تفاصيل الحالة الصحية"></textarea>
+
+                        </div>
+
+                        <!-- Disability Condition -->
+                        <div class="mb-3">
+                            <label>هل لديه إعاقة؟</label>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="IsDisabled" id="IsDisabledYes" value="true" class="form-check-input" onclick="toggleField('DisableDescription', true)" />
+                                <label for="IsDisabledYes" class="form-check-label">نعم</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input type="radio" asp-for="IsDisabled" checked id="IsDisabledNo" value="false" class="form-check-input" onclick="toggleField('DisableDescription', false)" />
+                                <label for="IsDisabledNo" class="form-check-label">لا</label>
+                            </div>
+                            <textarea asp-for="DisableDescription" class="form-control mt-2" id="DisableDescription" style="display:none;" placeholder="أدخل تفاصيل الإعاقة"></textarea>
+                        
+                        </div>
+
+                        <!-- Parent Note -->
+                        <div class="mb-3">
+                            <label asp-for="ParentsNote" class="form-label">ملاحظات الوالدين (اختياري)</label>
+                            <textarea asp-for="ParentsNote" class="form-control" placeholder="أدخل ملاحظات الوالدين"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">إضافة الطفل</button>
+                    </div>
+            
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function previewImage(previewId, input) {
+        const previewContainer = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewContainer.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function toggleField(fieldId, isChecked) {
+        const field = document.getElementById(fieldId);
+        if (isChecked) {
+            field.style.display = 'block'; // Show the field when checkbox is checked
+            field.required = true; // Make it required
+        } else {
+            field.style.display = 'none'; // Hide the field when checkbox is unchecked
+            field.required = false; // Remove required status
+            field.value = ''; // Clear the field value
+        }
+    }
+
+    // Function to calculate and display age based on birth date input
+    const birthdayInput = document.getElementById('BirthDay');
+    const ageDisplay = document.getElementById('Oldyears');
+    birthdayInput.addEventListener('change', function () {
+        const birthDate = new Date(this.value);
+        const age = new Date().getFullYear() - birthDate.getFullYear();
+        ageDisplay.value = age;
+    });
+
+</script>

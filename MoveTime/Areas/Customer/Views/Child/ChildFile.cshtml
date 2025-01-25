@@ -1,0 +1,256 @@
+﻿@model Models.ViewModels.ChildFile.ChildFileView
+
+@{
+    ViewData["Title"] = "ملف الطفل";
+    int inoutCount = Model.ChildSubscriptions?.Sum(e => e.ID) ?? 1; ;
+}
+<partial name="_StatusMessages"></partial>
+<div class="child-details-container">
+    <div class="child-image-section">
+        <img src="~/images/Childrens/@Model.ChildImageName" alt="@Model.Name" class="child-image" />
+        <div class="action-buttons">
+            <a href="/Customer/Child/EditChild?id=@Model.ChildId" class="btn-edit">تعديل البيانات</a>
+        </div>
+    </div>
+    <div class="child-details-section">
+        <h2 class="child-name">@Model.Name</h2>
+        <p><strong>الرقم القومي:</strong> @Model.NationalId</p>
+        <p><strong>تاريخ الميلاد:</strong> @Model.BirthDay</p>
+        <p><strong>العمر:</strong> @Model.Oldyears سنوات</p>
+        <p><strong>الجنس:</strong> @Model.Gender</p>
+        <p><strong>رقم الواتساب:</strong> @Model.WhatsappNumber</p>
+        <p><strong>رقم الهاتف:</strong> @Model.Phone</p>
+        <p>
+            <strong>صورة أخلاء الطرف:</strong>
+            <a href="~/images/Disclaimers/@Model.DisclaimerImage" target="_blank" class="link">
+                عرض الصورة
+            </a>
+        </p>
+        <p><strong>الحالة الصحية:</strong> @Model.HealthCondition</p>
+        <p><strong>وصف الإعاقة:</strong> @Model.DisableDescription</p>
+        <p><strong>ملاحظات الوالدين:</strong> @Model.ParentsNote</p>
+        <p><strong>السبب في القائمة السوداء:</strong> @Model.BlackListReason</p>
+        <p><strong>سبب المرافقة:</strong> @Model.ChildEscortReason</p>
+        <p><strong>ملاحظات المشرف:</strong> @Model.SupervisorNote</p>
+        <p><strong>البريد الإلكتروني للوالدين:</strong> @Model.ParentEmail</p>
+        <p>
+            <strong>حالة الاشتراك:</strong>
+            @(Model.IsAllowedToSubscribe ? "مسموح" : "غير مسموح")
+        </p>
+        <p>
+            <strong>تمت الموافقة:</strong>
+            @(Model.IsApproved ? "نعم" : "لا")
+        </p>
+    </div>
+</div>
+
+@if (Model.ChildSubscriptions != null && Model.ChildSubscriptions.Any())
+{
+    <div class="subscriptions-container my-4 mb-3">
+        <h2 class="text-center mb-4">الاشتراكات</h2>
+        <div id="childSubscriptionsAccordion" class="accordion">
+            @foreach (var subscription in Model.ChildSubscriptions)
+            {
+                <div class="accordion-item mb-3">
+                    <h2 class="accordion-header" id="heading-@subscription.ID">
+                        <button class="accordion-button collapsed d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@subscription.ID" aria-expanded="false" aria-controls="collapse-@subscription.ID">
+                            <span class="subscription-name">@subscription.SubName</span>
+                            <span class="subscription-status text-muted ms-3">(@subscription.Status)</span>
+                        </button>
+                    </h2>
+                    <div id="collapse-@subscription.ID" class="accordion-collapse collapse" aria-labelledby="heading-@subscription.ID" data-bs-parent="#childSubscriptionsAccordion">
+                        <div class="accordion-body p-3">
+                            <div class="card subscription-card mb-3">
+                                <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-center">
+                                    <div class="subscription-info">
+                                        @if (subscription.DebtPayed)
+                                        {
+                                            <p><strong>طريقة الدفع:</strong> @subscription.PaymentMethod | <strong>طريقة دفع الدين:</strong> @subscription.DebtPaymentMethod</p>
+                                        }
+                                        else
+                                        {
+                                            <p><strong>طريقة الدفع:</strong> @subscription.PaymentMethod</p>
+                                        }
+                                        <p><strong>بداية الاشتراك:</strong> @subscription.SubscriptionBegin | <strong>نهاية الاشتراك:</strong> @subscription.SubscriptionEnd</p>
+                                        <p><strong>عدد الزيارات المتبقية:</strong> @subscription.VisitsNumber</p>
+                                        <p>
+                                            <strong>إجمالي السعر:</strong> @subscription.Total | <strong>المدفوع:</strong> @subscription.Payed | <strong>المتبقي:</strong> @subscription.Remaining @if (subscription.DebtPayed)
+                                            {
+                                                <span class="text-muted">(تم دفع)</span>
+                                            }
+                                        </p>
+                                        <p><strong>حالة الاشتراك:</strong> @subscription.Status</p>
+                                        @if (subscription.IsDuration)
+                                        {
+                                            <p><strong>مدة الاشتراك:</strong> @subscription.Duration ساعات</p>
+                                        }
+                                        else
+                                        {
+                                            <p><strong>من:</strong> @subscription.From <strong>إلى:</strong> @subscription.To</p>
+                                        }
+                                    </div>                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="subscriptions-container text-center mt-4 mb-3">
+        <h2>لا يوجد اشتراكات لهذا الطفل.</h2>
+    </div>
+}
+
+
+@if (Model.CheckInOuts != null && Model.CheckInOuts.Any())
+{
+    <div class="checkin-out-section">
+        <h2 class="text-center mb-4">سجل دخول و الخروج</h2>
+        <div class="accordion mt-4" id="checkInOutAccordion">
+            @foreach (var record in Model.CheckInOuts)
+            {
+                inoutCount++;
+
+                <div class="accordion-item mb-3">
+                    <h2 class="accordion-header" id="heading-@inoutCount">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@inoutCount" aria-expanded="false" aria-controls="collapse-@inoutCount">
+                            <span class="checkin-date">@record.DateLog</span>
+                        </button>
+                    </h2>
+                    <div id="collapse-@inoutCount" class="accordion-collapse collapse" aria-labelledby="heading-@inoutCount" data-bs-parent="#checkInOutAccordion">
+                        <div class="accordion-body p-3">
+                            <p><strong>الدخول:</strong> @record.CheckInBy | <strong>عدد الأطفال:</strong> @record.ChildrenNumber | <strong>مرافق:</strong> @(record.IsEscort ? "نعم" : "لا")</p>
+                            <p><strong>وقت تسجيل الدخول:</strong> @record.CheckIn | <strong>وقت الخروج المتوقع:</strong> @record.ExpectedCheckout | <strong>وقت الخروج الفعلي:</strong> @record.ActualCheckout</p>
+                            <p><strong>الدفع عند الدخول:</strong> @(string.IsNullOrEmpty(record.InPayment) ? "لم يتم دفع عند الدخول" : record.InPayment) | <strong>الدفع عند الخروج:</strong> @(string.IsNullOrEmpty(record.OutPayment) ? "لم يتم دفع عند الخروج" : record.OutPayment)</p>
+                            <p><strong>الإجمالي عند الدخول:</strong> @record.InTotal ريال | <strong>الإجمالي عند الخروج:</strong> @record.OutTotal ريال</p>
+                            <p><strong>اسم الفعالية:</strong> @record.EventName</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="subscriptions-container text-center mt-4">
+        <h2>لا توجد سجلات دخول أو خروج لهذا الطفل.</h2>
+    </div>
+}
+
+<!-- Styles -->
+<style>
+    .subscriptions-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .accordion-button {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    .subscription-card {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+    }
+
+        .subscription-card:hover {
+            transform: scale(1.02);
+        }
+
+    .card-body {
+        gap: 15px;
+    }
+
+    .subscription-info p {
+        margin: 0;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: bold;
+        transition: background-color 0.3s;
+    }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+</style>
+<style>
+    .child-details-container {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 2rem;
+        text-align: right;
+        font-family: "Cairo", sans-serif;
+    }
+
+    .child-image-section {
+        flex: 1;
+        text-align: center;
+    }
+
+    .child-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .child-details-section {
+        flex: 2;
+        background: #f9f9f9;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+        .child-details-section h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .child-details-section p {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+    .link {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+    .action-buttons {
+        margin-top: 1rem;
+    }
+
+    .btn-edit {
+        display: inline-block;
+        padding: 0.8rem 1.5rem;
+        background-color: #435ebe;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+        .btn-edit:hover {
+            background-color: #0056b3;
+        }
+</style>

@@ -1,0 +1,47 @@
+﻿@using Models
+@inject SignInManager<ApplicationUser> SignInManager
+@{
+    var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">إدارة الحساب</h5> <!-- Translated "Account Management" -->
+        <ul class="nav nav-pills flex-column">
+            <li class="nav-item">
+                <a class="nav-link @ManageNavPages.IndexNavClass(ViewContext)" id="profile" asp-page="./Index">
+                    <i class="bi bi-person"></i> الملف الشخصي <!-- Translated "Profile" -->
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">
+                    <i class="bi bi-envelope"></i> البريد الإلكتروني <!-- Translated "Email" -->
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">
+                    <i class="bi bi-lock"></i> كلمة المرور <!-- Translated "Password" -->
+                </a>
+            </li>
+            @if (hasExternalLogins)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" id="external-logins" asp-page="./ExternalLogins">
+                        <i class="bi bi-cloud"></i> تسجيلات الدخول الخارجية <!-- Translated "External Logins" -->
+                    </a>
+                </li>
+            }
+            <li class="nav-item">
+                <a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">
+                    <i class="bi bi-person-badge"></i> البيانات الشخصية <!-- Translated "Personal Data" -->
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    body {
+        direction: rtl; /* Right-to-left layout for Arabic */
+    }
+</style>

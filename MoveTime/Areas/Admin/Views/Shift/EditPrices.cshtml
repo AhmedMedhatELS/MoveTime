@@ -1,0 +1,266 @@
+﻿@using Utility
+@model List<Models.ViewModels.EditHour>
+
+@{
+    var wcichshift = TempData["whichShift"] as string;
+    string header;
+
+    Enum.TryParse(wcichshift, out WhichShift shiftEnum);
+
+    if (wcichshift == WhichShift.Morning.ToString())
+    {
+        ViewData["Title"] = "إدارة ساعات الفترة الصباحية";
+        header = "إدارة تفاصيل ساعات الفترة الصباحية";
+    }
+    else
+    {
+        ViewData["Title"] = "إدارة ساعات الفترة المسائية";
+        header = "إدارة تفاصيل ساعات الفترة المسائية";
+    }
+
+   
+}
+
+<div class="container mt-4">
+    <!-- Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["ErrorMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <div class="d-flex justify-content-between">
+        <h3 class="mb-4">@header</h3>
+        <button type="button" class="alert alert-secondary" id="AddHour" onclick="ShowLasthour()">أضافة ساعة جديده</button>
+    </div>
+    <div id="hoursContainer">
+        @foreach (var hour in Model)
+        {
+            <!-- Each Hour Section Loaded from Backend -->
+            <div id="@(hour == Model.Last() ? "LastHour" : "hourTemplate")" style="display:@(hour == Model.Last() ? "none" : "")" class="hour-section collapse show" data-hour-index="@hour.Id">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <button class="btn " type="button" data-bs-toggle="collapse" data-bs-target="#collapseHour-@hour.Id">
+                            <h5 class="d-inline">الساعة <span class="hour-number">@hour.HourNumber</span></h5>
+                        </button>
+                    </div>
+                    <div id="collapseHour-@hour.Id" class="card-body collapse">
+                        @{
+                            if (!hour.AsPrevious)
+                            {
+                                    <div class="ranges-container mt-3" id="@($"minuteRanges{hour.Id}")">
+                                        @foreach (var range in hour.MinutesRangeList)
+                                    {
+                                            <!-- Template for Minute Range within the Hour -->
+                                            <div class="range-input row mb-2">
+                                                <div class="col-md-3">
+                                                    <label>البداية:</label>
+                                                    <input type="number" min="@range.Start" max="60" class="form-control range-start" value="@range.Start" readonly />
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>النهاية:</label>
+                                                    <input type="number" min="@(range.Start + 1)" max="60" class="form-control range-end" value="@range.End" onchange="updateNextStart(@hour.Id)" />
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>السعر:</label>
+                                                    <input type="number" min="0" value="@range.Price" class="form-control range-price" />
+                                                </div>
+                                                @if (range != hour.MinutesRangeList[0])
+                                            {
+                                                    <div class="col-md-3 d-flex align-items-end">
+                                                        <button type="button" class="btn btn-danger" onclick="deleteRange(this)">حذف</button>
+                                                    </div>
+                                            }
+                                            </div>
+                                    }
+                                    </div>
+
+                                    <!-- Button to add new minute range -->
+                                    <button type="button" class="alert alert-primary mt-3" onclick="addNewRange(@hour.Id)">إضافة مدى جديد</button>
+
+                                    @if (hour.HourNumber > 1)
+                                {
+                                        <!-- Button to mark as previous hour -->
+                                        <a asp-area="Admin" asp-controller="Shift" asp-action="MatchPreviousHour" asp-route-id="@hour.Id" asp-route-whichShift="@shiftEnum" class="alert alert-secondary mt-3">مطابقة الساعة السابقة</a>
+                                }
+                                    <!-- Submit button for the current hour -->
+                                    <form method="post" asp-area="Admin" asp-controller="Shift" asp-action="SaveHour">
+                                        <input type="hidden" name="SaveHour.Id" value="@hour.Id" />
+                                        <input type="hidden" name="SaveHour.WhichShift" value="@wcichshift" />
+                                        <input type="hidden" name="SaveHour.HourData" id="@($"HourData{hour.Id}")" />
+                                        <div class="d-flex justify-content-between mt-3">
+                                            <button type="submit" class="alert alert-primary" onclick="prepareSubmission(@hour.Id)">حفظ</button>
+                                        @{
+                                            if (hour == Model.Last())
+                                            {
+                                                <a class="alert alert-danger" href="javascript:void(0);" onclick="HideLastHour()">حذف الساعة</a>
+                                            }
+                                            else
+                                            {
+                                                <a class="alert alert-danger" href="javascript:void(0);" onclick="confirmDelete(@hour.Id)">حذف الساعة</a>
+                                            }
+                                        }                                        
+                                        </div>
+                                    </form>
+                            }
+                            else
+                            {
+                                    <div class="alert alert-info text-center my-3" style="font-weight: 500; color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb;">
+                                        <span>هذه الساعة مطابقه للتى قبلها</span>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between mt-3">
+                                        <a asp-area="Admin" asp-controller="Shift" asp-action="RemoveMatching" asp-route-id="@hour.Id" asp-route-whichShift="@wcichshift" class="alert alert-secondary mt-3">فك التطابق</a>
+                                        <a class="alert alert-danger mt-3" href="javascript:void(0);" onclick="confirmDelete(@hour.Id)">حذف الساعة</a>
+                                    </div>                                
+                            }
+                        }                 
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<script>
+    function HideLastHour() {
+        const button = document.getElementById("AddHour");
+        const lastHour = document.getElementById("LastHour");
+
+        button.style.display = "block";
+        lastHour.style.display = "none";
+    }
+    function ShowLasthour() {
+        const button = document.getElementById("AddHour");
+        const lastHour = document.getElementById("LastHour");
+
+        button.style.display = "none";
+        lastHour.style.display = "block";
+    }
+    function confirmDelete(hourId) {
+        const userConfirmed = confirm('سيتم حذف هذه الساعة وجميع الساعات التي تليها.');
+        if (userConfirmed) {
+            // If the user confirms, redirect to the delete action
+            window.location.href = `/Admin/Shift/DeleteHour?id=${hourId}&whichShift=@wcichshift`;
+        }
+    }
+    function addNewRange(hour) {
+        const rangesContainer = document.getElementById(`minuteRanges${hour}`);
+        const lastRange = rangesContainer.querySelector(".range-input:last-of-type");
+
+        // Get the end value of the last range or set to 0 if no ranges exist
+        const lastEnd = lastRange ? parseInt(lastRange.querySelector(".range-end").value) || 0 : 0;
+        const lastStart = lastRange ? parseInt(lastRange.querySelector(".range-start").value) || 0 : 0;
+
+        if (lastEnd < 60 && lastEnd > lastStart) {
+            const newRange = document.createElement("div");
+            newRange.className = "range-input row mb-2";
+            newRange.innerHTML = `
+                        <div class="col-md-3">
+                            <label>البداية:</label>
+                                <input type="number" min="${lastEnd + 1}" max="60" class="form-control range-start" value="${lastEnd + 1}" readonly />
+                        </div>
+                        <div class="col-md-3">
+                            <label>النهاية:</label>
+                                <input type="number" min="${lastEnd + 2}" max="60" class="form-control range-end" onchange="updateNextStart(${hour})" />
+                        </div>
+                        <div class="col-md-3">
+                            <label>السعر:</label>
+                                <input type="number" min="0" value="0" class="form-control range-price" />
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-danger" onclick="deleteRange(this)">حذف</button>
+                        </div>`;
+
+            rangesContainer.appendChild(newRange);
+
+            // Call updateNextStart to ensure that any changes to the end of previous ranges are applied to subsequent ranges
+            updateNextStart(hour);
+        }
+    }
+
+    function updateNextStart(hour) {
+        const ranges = document.querySelectorAll(`#minuteRanges${hour} .range-input`);
+        for (let i = 0; i < ranges.length - 1; i++) {
+            const end = parseInt(ranges[i].querySelector(".range-end").value) || 0;
+            const nextStart = ranges[i + 1].querySelector(".range-start");
+            if (end >= 1 && end <= 60) {
+                nextStart.value = end + 1;
+            }
+        }
+    }
+
+
+    function prepareSubmission(hour) {
+        const ranges = [];
+        let isValid = true; // To track if all conditions are met
+        let lastEnd = 0; // Variable to track the end of the last range
+
+        document.querySelectorAll(`#minuteRanges${hour} .range-input`).forEach((rangeInput) => {
+            const start = parseInt(rangeInput.querySelector(".range-start").value);
+            const end = parseInt(rangeInput.querySelector(".range-end").value);
+            const price = parseFloat(rangeInput.querySelector(".range-price").value);
+
+            // Validate price
+            if (price < 0) {
+                alert("يجب أن يكون السعر 0 أو أكبر."); // Alert message in Arabic
+                isValid = false;
+            }
+
+            // Validate range continuity
+            if (start <= lastEnd) {
+                alert(`بداية المدى ${start} يجب أن تكون أكبر من النهاية السابقة ${lastEnd}.`); // Alert in Arabic
+                isValid = false;
+            }
+
+            // Validate that the end of the last range is within the expected limits
+            if (end > 60) {
+                alert("النهاية يجب أن تكون 60 أو أقل."); // Alert in Arabic
+                isValid = false;
+            }
+
+            // Add the range to the array if all conditions are met
+            if (isValid) {
+                ranges.push(`${start}-${end}:${price}`);
+                lastEnd = end; // Update the lastEnd for the next iteration
+            }
+        });
+
+        // Check if the first range starts at 1 and the last ends at 60
+        if (isValid) {
+            if (parseInt(ranges[0].split('-')[0]) !== 1) {
+                alert("يجب أن يبدأ المدى الأول من 1."); // Alert in Arabic
+                isValid = false;
+            }
+
+            if (parseInt(ranges[ranges.length - 1].split('-')[1]) !== 60) {
+                alert("يجب أن ينتهي المدى الأخير عند 60."); // Alert in Arabic
+                isValid = false;
+            }
+        }
+
+        if (isValid) {
+            console.log(ranges);
+            document.getElementById(`HourData${hour}`).value = ranges.join(",");
+        } else {
+            // Prevent form submission if validation fails
+            event.preventDefault();
+        }
+    }
+
+
+    function deleteRange(button) {
+        const rangeRow = button.closest(".range-input");
+        const hourIndex = button.closest(".hour-section").getAttribute("data-hour-index");
+        rangeRow.remove(); // Remove the selected range
+        updateNextStart(hourIndex); // Update the next start values
+    }
+</script>
+

@@ -1,0 +1,139 @@
+﻿@model EventView
+
+@{
+    ViewBag.Title = "إدارة الفعاليات";
+}
+
+<div class="container">
+    <h2 class="text-center my-4">إدارة الفعاليات</h2>
+
+    <partial name="_StatusMessages"></partial>
+
+    <!-- Add/Edit Event Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+           
+            <form asp-action="AddEditEvent" method="post">
+
+                <input type="hidden" asp-for="EventId" />
+
+                <div class="form-group mb-3">
+                    <label asp-for="EventName" class="form-label">اسم الفعالية</label>
+                    <input asp-for="EventName" class="form-control" />
+                    <span asp-validation-for="EventName" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="EventDescription" class="form-label">وصف الفعالية</label>
+                    <textarea asp-for="EventDescription" class="form-control"></textarea>
+                    <span asp-validation-for="EventDescription" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Price" class="form-label">السعر</label>
+                    <input asp-for="Price" type="number" class="form-control" />
+                    <span asp-validation-for="Price" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Status" class="form-label">حالة الفعالية</label>
+                    <select asp-for="Status" class="form-select">
+                        @foreach (var status in Enum.GetValues(typeof(EventStatus)).Cast < EventStatus>().ToList())
+                        {
+                            if (status == EventStatus.Deleted) continue;
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Status" class="text-danger"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <button type="submit" id="submitbutton" class="btn alert-primary">
+                        @(Model.EventId == 0 ? "إضافة فعالية" : "تحديث الفعالية")
+                    </button>
+                    <button type="button" style="display:none;" id="newbutton" onclick="NewEvent()" class="btn alert-success">
+                        فعالية جديد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Events List -->
+    <div class="row">
+        @foreach (var eventItem in Model.Events)
+        {
+            <div class="col-md-4">
+                <div class="card mb-3 @(eventItem.Status == EventStatus.نشط ? "Active-card" : "InActive-card")">
+                    <div class="card-body">
+                        <h5 id="Name-@eventItem.EventId" class="card-title">@eventItem.EventName</h5>
+                        <textarea id="Description-@eventItem.EventId" class="form-control" rows="5" readonly style="resize: none;">@eventItem.EventDescription</textarea>
+                        <p class="card-text">السعر:<span id="Price-@eventItem.EventId">@eventItem.Price ر.س</span> </p>
+                        <p class="card-text">الحالة:<span id="Status-@eventItem.EventId">@(eventItem.Status == EventStatus.نشط ? "نشط" : "غير نشط")</span></p>
+
+                        <!-- Edit and Delete Buttons -->
+                        <button type="button" onclick="EditEvent(@eventItem.EventId)"  class="btn alert-warning btn-sm">تعديل</button>
+                        <a asp-action="DeleteEvent" asp-route-id="@eventItem.EventId" class="btn alert-danger btn-sm"
+                           onclick="return confirm('هل أنت متأكد من حذف هذه الفعالية؟');">حذف</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+
+    .Active-card {
+        background-color: #e6ffe6; /* Light Green */
+        border: 2px solid #4dff4d; /* Light Green Border */
+    }
+
+    .InActive-card {
+        background-color: #ffe6e6;
+        border: 2px solid #ff4d4d;
+    }
+</style>
+
+<script>
+    function EditEvent(id) { 
+        const Name = document.getElementById("Name-" + id).textContent;
+        const Price = document.getElementById("Price-" + id).textContent;
+        const Description = document.getElementById("Description-" + id).textContent;
+        const Status = document.getElementById("Status-" + id).textContent.trim();
+       
+        if (Status === 'غير نشط') 
+            Statustext = 'غير_نشط';
+        else
+            Statustext = Status;
+        
+        document.getElementById("EventId").value = id;
+        document.getElementById("EventName").value = Name;
+        document.getElementById("Price").value = parseInt(Price);
+        document.getElementById("EventDescription").value = Description;
+
+        const statusSelect = document.getElementById("Status");
+
+        Array.from(statusSelect.options).forEach(option => {
+            if (option.textContent.trim() === Statustext) {
+                option.selected = true;
+            }
+        });
+
+        document.getElementById("submitbutton").innerHTML = 'تحديث الفعالية';
+
+        document.getElementById("newbutton").style.display = 'block';
+    }
+    function NewEvent()
+    {
+        document.getElementById("newbutton").style.display = 'none';
+        document.getElementById("submitbutton").innerHTML = 'إضافة فعالية';
+        document.getElementById("EventId").value = 0;
+        document.getElementById("EventName").value = '';
+        document.getElementById("Price").value = 0;
+        document.getElementById("EventDescription").value = '';
+    }
+</script>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

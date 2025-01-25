@@ -1,0 +1,922 @@
+﻿@using Newtonsoft.Json
+@model CheckInView
+
+@{
+    ViewData["Title"] = "تسجيل الدخول";
+
+    CheckInTicket ticket = new();
+
+    if(TempData["Ticket"] != null)
+    {
+        ticket = JsonConvert.DeserializeObject<CheckInTicket>((string)TempData["Ticket"]) ?? new CheckInTicket();
+    }
+        }
+
+<div class="container mt-4 no-print">
+    <partial name="_StatusMessages"></partial>
+    <h2 class="mb-3 text-center">تسجيل الدخول</h2>
+
+
+    <div class="price-summary">
+        <div class="price-item">
+            <p>عدد الاطفال</p>
+            <span id="totalchildern">0</span>
+        </div>
+        <div class="price-item">
+            <p>مجموع</p>
+            <span id="totalPrice">0</span> ريال
+        </div>
+        <div class="price-item">
+            <p>الوقت بالدقائق</p>
+            <span id="TimeInMinutes">0</span> دقيقه
+        </div>
+        <div class="price-item">
+            <p>حساب الوقت</p>
+            <span id="IntervalPriceElem">0</span> ريال
+        </div>
+        <div class="price-item">
+            <p>حساب السلع</p>
+            <span id="productsPriceElem">0</span> ريال
+        </div>
+        <div class="price-item">
+            <p>حساب الفعاليه</p>
+            <span id="eventPriceElem">0</span> ريال
+        </div>
+    </div>
+
+    <form asp-action="SaveCheckIn" method="post" id="savecheckin" class="mt-3">
+
+        <!-- Hidden input to hold child IDs -->
+        <input type="hidden" id="childIds" name="CheckIn.ChildIds" value="">
+
+        <!-- Hidden Input to send product-quantity data -->
+        <input type="hidden" id="selectedProducts" name="CheckIn.SelectedProducts" value="" />
+     
+        <div class="form-group">
+            <label for="checkInTime" class="font-weight-bold">وقت الدخول</label>
+            <input type="time" id="checkInTime" name="CheckIn.CheckInTime" value="@DateTime.Now.ToString("HH:mm")" class="form-control shadow-sm" oninput="calculate()"  />
+        </div>
+
+        <div class="form-group form-check mt-3">
+            <label class="form-check-label font-weight-bold" for="isEscort">هل يوجد مرافق؟</label>
+            <input type="checkbox" id="isEscort" name="CheckIn.IsEscort" class="form-check-input" />            
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="eventSelect" class="font-weight-bold">اختر الحدث</label>
+            <select id="eventSelect" name="CheckIn.EventId" class="form-control shadow-sm">
+                <option value="">اختر الحدث</option>
+                @foreach (var ev in Model.EventCVMs)
+                {
+                    <option value="@ev.Id" data-price="@ev.Price">@ev.Name - @ev.Price ريال</option>
+                }
+            </select>
+        </div>
+
+        <div class="form-group mt-3">
+            <button type="button" id="checkoutToggle" class="btn alert-primary shadow-sm">إضافة وقت الخروج ووسيلة الدفع</button>
+            <button type="button" id="removeCheckout" style="display: none;" class="btn alert-danger mt-2">حذف وقت الخروج ووسيلة الدفع</button>
+            <div id="checkoutOptions" class="mt-3" style="display: none;">
+                <label for="checkOutTime" class="font-weight-bold">وقت الخروج</label>
+                <input type="time" id="checkOutTime" name="CheckIn.CheckOutTime" class="form-control shadow-sm" oninput="calculate()" />
+
+                <label for="paymentMethod" class="mt-2 font-weight-bold">طريقة الدفع</label>
+                <select id="paymentMethod" name="CheckIn.PaymentMethod" class="form-control shadow-sm">
+                    <option value="">اختر وسيلة الدفع</option>
+                    @foreach (var method in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>().ToList())
+                    {
+                        <option value="@method">@method</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn alert-primary mt-4 shadow-sm">حفظ</button>
+    </form>
+
+        <div class="accordion mt-4" id="accordionExample">
+            <!-- Products Section -->
+            <div class="card shadow-sm">
+                <div class="card-header" id="headingProducts">
+                    <h5 class="mb-0">
+                        <button class="btn font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#productsSection" aria-expanded="true" aria-controls="productsSection">
+                            المنتجات
+                        </button>
+                    </h5>
+                </div>
+
+            <div id="productsSection" class="collapse show" aria-labelledby="headingProducts" data-parent="#accordionExample">
+                    <div class="card-body">
+
+                    <!-- Search Bar -->
+                    <input type="text" id="searchBarProduct" placeholder="Search by name" class="form-control mb-4" onkeyup="filterProduct()" />
+
+                        <div id="productsection" class="product-cards-container d-flex flex-wrap justify-content-center">
+                           <!-- for products cards -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Children Section -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header" id="headingChildren">
+                    <h5 class="mb-0">
+                        <button class="btn font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#childrenSection" aria-expanded="true" aria-controls="childrenSection">
+                            الأطفال
+                        </button>
+                    </h5>
+                </div>
+
+                <div id="childrenSection" class="collapse show" aria-labelledby="headingChildren" data-parent="#accordionExample">
+                    <div class="card-body">
+               
+                        <!-- Search Bar -->
+                    <input type="text" id="searchBar" placeholder="Search by Name or PhoneNumber" class="form-control mb-4" onkeyup="filterChildren()" />
+
+                        <div id="childrenContinour" class="child-cards-container d-flex flex-wrap justify-content-center">
+                            <!-- childs cards -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+</div>
+
+<!-- Child Details Modal -->
+<div class="modal fade no-print" id="childDetailsModal" tabindex="-1" aria-labelledby="childDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="childDetailsModalLabel">تفاصيل الطفل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>اسم الطفل:</strong> <span id="childName"></span></li>
+                    <li class="list-group-item"><strong>مجموع الوقت فى المركز:</strong> <span id="childTotalTime"></span></li>
+                    <li class="list-group-item"><strong>كود:</strong> <span id="childID"></span></li>
+                    <li class="list-group-item"><strong>رقم الواتساب:</strong> <span id="childWhatsapp"></span></li>
+                    <li class="list-group-item"><strong>الحالة الصحية:</strong> <span id="childHealthCondition"></span></li>
+                    <li class="list-group-item"><strong>الاعاقة:</strong> <span id="childDisableDescription"></span></li>
+                    <li class="list-group-item"><strong>ملاحظة الوالدين:</strong> <span id="childParentsNote"></span></li>
+                    <li class="list-group-item"><strong>ملاحظة المشرف:</strong> <span id="childSupervisorNote"></span></li>
+                    <li class="list-group-item"><strong>السبب في القائمة السوداء:</strong> <span id="childBlackListReason"></span></li>
+                    <li class="list-group-item"><strong>سبب الإشراف:</strong> <span id="childEscortReason"></span></li>
+                </ul>
+                <div class="notes-table">
+                    <h3>الملاحظات</h3>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>الملاحظة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notesTableBody">
+                            <!-- Rows for notes will be added dynamically here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn alert-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" id="childsaddbutton" class="btn alert-success add-btn">اضافة الطفل</button>
+                <button type="button" id="childsremovebutton" class="btn alert-danger remove-btn" style="display:none;">ازالة الطفل</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ticket -->
+<div style="display: none;" class="ticket-container border border-2 rounded-3 p-4 bg-light shadow-sm print-pay">
+    <div class="ticket-header text-center border-bottom border-2 pb-3 mb-4">
+        <h1 class="fs-4 fw-bold">تذكرة تسجيل الدخول</h1>
+        <p class="text-secondary">شكراً لاختياركم Move Time</p>
+    </div>
+
+    <div class="ticket-details mb-4">
+        <p><span class="fw-bold text-dark">رقم التذكرة : </span> @ticket.CheckInOutID</p>
+        <p><span class="fw-bold text-dark">وقت تسجيل الدخول : </span><span dir="ltr"> @ticket.CheckInTime </span></p>
+        <p><span class="fw-bold text-dark">وقت الخروج المتوقع : </span><span dir="ltr"> @ticket.ExpectedCheckOutTime </span></p>
+    </div>
+
+    <div class="children-list">
+        <h3 class="fs-5 fw-bold mb-3">الأطفال:</h3>
+        <ul class="list-unstyled">
+            @foreach (var child in ticket.ChildrensNames)
+            { 
+                <li class="mb-2 text-secondary">- @child</li>
+             }
+        </ul>
+    </div>
+
+    <div class="footer text-center mt-4 text-muted">
+        <p> Move Time - نجعل كل لحظة مميزة</p>
+        <p>&copy; 2025 Move Time</p>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script type="text/javascript">
+
+        // Create a connection to the hub
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/checkInOutHub")
+            .build();
+
+        // Function that the hub can call to broadcast price
+        connection.on("CalculatedPrice", function (price, minutes) {
+
+
+            if (typeof price === "object") {
+                document.getElementById("checkOutTime").value = '';
+                alert("حدث خطا فى حساب الوقت تاكد من وقت خروج و الدخول!!");
+            }
+            else
+            {
+                intervalPrice = price;
+                document.getElementById("TimeInMinutes").innerHTML = minutes;
+                showTotal();
+            }
+        });
+
+        connection.on("childrenSearchResult", function (children) {
+
+
+            const childrenContinour = document.getElementById("childrenContinour");
+
+            children.forEach(child => {
+                const childDiv = document.createElement("div");
+                
+                childDiv.id = `cont-${child.id}`;
+                childDiv.classList.add('Non-selected');
+
+                childDiv.innerHTML = `
+                                            <div id="details-${child.id}" class="child-card
+                                                 
+                                                ${child.blackList && child.totalDebt > 0 ? "HaveDebt-BlackListed-card" :
+                                                 child.blackList ? "blacklisted-card" :
+                                                 child.totalDebt > 0 ? "HaveDebt-card" :
+                                                 "regular-card"}"
+
+                                                 data-bs-toggle="modal"
+                                                 data-bs-target="#childDetailsModal"
+                                                 data-id="${child.id}"
+                                                 data-name="${child.name}"
+                                                 data-totaltime="${child.totalTime}"
+                                                 data-image="${child.imageName}"
+                                                 data-whatsapp="${child.whatsappNumber}"
+                                                 data-health-condition="${child.healthCondition}"
+                                                 data-disable-description="${child.disableDescription}"
+                                                 data-parents-note="${child.parentsNote}"
+                                                 data-supervisor-note="${child.supervisorNote}"
+                                                 data-blacklist-reason="${child.blackListReason}"
+                                                 data-escort-reason="${child.escortReasonString}"
+                                                 data-notes="${child.checkInOutNotes.join('-')}">
+
+                                                <a class="card-link" onclick="showdetails(${child.id})">
+                                                    <div class="image-wrapper">
+                                                        <img src="/images/Childrens/${child.imageName}" alt="${child.name}" class="child-image" />
+                                                    </div>
+                                                    <h5 class="child-name">${child.name}</h5>
+                                                    <p class="child-ID">${child.id}</p>
+                                                    <p> دين : ${child.totalDebt} </p>
+                                                </a>
+                                            </div>
+
+                        `;
+
+                childrenContinour.appendChild(childDiv);
+            });
+
+        });
+
+        connection.on("ProductsSearchResult", function (products) {
+            
+            const productsection = document.getElementById("productsection");
+
+            products.forEach(product => {
+
+                const productDiv = document.createElement("div");
+
+                productDiv.id = `prod-${product.id}`;
+                productDiv.classList.add('Not-Selected-product');
+
+                productDiv.innerHTML = `
+                            <div class="product-card regular-card">
+                                                <div class="image-wrapper">
+                                                    <img src="/images/Products/${product.imageName}" class="product-image" alt="${product.name}" />
+                                                </div>
+                                                <h5 class="product-name">${product.name}</h5>
+                                                <p class="product-price text-success font-weight-bold">${product.price} ريال</p>
+                                                <div class="input-group quantity-controls">
+                                                                    <button type="button" class="btn alert-secondary btn-minus" onclick="SubtractProductButton(${product.id})">-</button>
+                                                    <input id="inputproduct-${product.id}" readonly type="number" min="0" max="${product.quantity}" value="0" class="form-control text-center product-quantity shadow-sm" data-product-id="${product.id}" />
+                                                            <button type="button" class="btn alert-secondary btn-plus" onclick="AddProductButton(${product.id})">+</button>
+                                                </div>
+                                            </div>
+                `;
+
+                productsection.appendChild(productDiv);
+
+            });
+        });
+
+        // Start the connection
+        connection.start();
+
+    </script>
+    <script>
+
+        function timeToMinutes(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Send time function
+        function calculate() {
+            const checkintime = document.getElementById("checkInTime").value;
+            const checkouttime = document.getElementById("checkOutTime").value;
+
+            if (timeToMinutes(checkintime) < timeToMinutes(checkouttime)) {
+                connection.invoke("IntervalPrice", checkintime,'', checkouttime);
+            } else if (!checkintime || !checkouttime) {
+
+            }
+            else {
+                document.getElementById("checkOutTime").value = '';
+                document.getElementById("TimeInMinutes").innerHTML = 0;
+                document.getElementById("IntervalPriceElem").innerHTML = 0;
+                alert("وقت الخروج يجب ان يكون بعد وقت الدخول");
+            }
+        }
+
+
+        const totalPriceElem = document.getElementById("totalPrice");
+
+        const IntervalPriceElem = document.getElementById("IntervalPriceElem");
+        const productsPriceElem = document.getElementById("productsPriceElem");
+        const eventPriceElem = document.getElementById("eventPriceElem");
+
+        let eventPrice = 0;
+        let productsPrice = 0;
+        let intervalPrice = 0;
+        let selectedProducts = [];
+        let childernnumber = 0;
+
+        // Declare childIds globally to keep track of selected child IDs
+        var childIds = document.getElementById("childIds").value;
+        var selectedProductsids = document.getElementById("selectedProducts").value;
+
+        // Get the form element
+        var form = document.getElementById('savecheckin');
+
+        // Add a submit event listener to the form
+        form.addEventListener('submit', function (event) {
+            if (childernnumber === 0) {
+
+                event.preventDefault();
+
+                alert('يجب اختيار طفل واحد على الأقل قبل إتمام العملية.');
+            }
+        });
+
+
+        function showTotal() {
+
+            IntervalPriceElem.textContent = intervalPrice;
+            productsPriceElem.textContent = productsPrice;
+            eventPriceElem.textContent = eventPrice;
+
+            totalPriceElem.textContent = productsPrice + (eventPrice * childernnumber) + (intervalPrice * childernnumber);
+        }
+
+        function updateTotalPrice() {
+            productsPrice = 0; // Reset total price
+            selectedProducts = []; // Reset selected products array
+
+            document.querySelectorAll('.product-quantity').forEach(input => {
+                const quantity = parseInt(input.value);
+                if (quantity > 0) {
+                    const productId = input.getAttribute('data-product-id');
+                    const price = parseInt(input.closest('.product-card').querySelector('.product-price').textContent.replace(' ريال', '').trim());
+                    productsPrice += price * quantity; // Add to total price
+
+                    // Add product and quantity to selected products array
+                    selectedProducts.push(`${productId}-${quantity}`);
+                }
+            });
+
+            // Update the total price display
+            showTotal();
+
+            // Set the value of the hidden input to the selected products string
+            document.getElementById('selectedProducts').value = selectedProducts.join('|');
+        }
+
+        function SubtractProductButton(id) {
+
+            const input = document.getElementById(`inputproduct-${id}`);
+            
+            if (input.value > 0) {
+                input.value = parseInt(input.value) - 1;
+                if (parseInt(input.value) === 0) {
+                    const id = input.getAttribute('data-product-id');
+                    const proddiv = document.getElementById(`prod-${id}`);
+                    proddiv.classList.add('Not-Selected-product');
+                }
+                updateTotalPrice();
+            }
+        }
+
+        function AddProductButton(id) {
+
+            const input = document.getElementById(`inputproduct-${id}`);
+           
+            if (parseInt(input.getAttribute('max')) > parseInt(input.value)) {
+                if (parseInt(input.value) === 0) {
+                    const id = input.getAttribute('data-product-id');
+                    const proddiv = document.getElementById(`prod-${id}`);
+                    proddiv.classList.remove('Not-Selected-product');
+                }
+                input.value = parseInt(input.value) + 1;
+                updateTotalPrice();
+            }
+        }
+
+        //for event
+        document.getElementById("eventSelect").addEventListener("change", function () {
+            const price = parseInt(this.selectedOptions[0].getAttribute("data-price")) || 0;
+            eventPrice = price;
+            showTotal();
+        });
+
+        function showdetails(id) {
+            const child = document.getElementById(`details-${id}`);
+
+            childID = id;
+
+            var name = child.getAttribute('data-name');
+            var whatsapp = child.getAttribute('data-whatsapp');
+            var health = child.getAttribute('data-health-condition');
+            var disable = child.getAttribute('data-disable-description');
+            var parents = child.getAttribute('data-parents-note');
+            var supervisor = child.getAttribute('data-supervisor-note');
+            var blacklist = child.getAttribute('data-blacklist-reason');
+            var escort = child.getAttribute('data-escort-reason');
+            var notes = child.getAttribute('data-notes');
+            var totalTime = child.getAttribute('data-totaltime');
+
+            var notesArray = notes ? notes.split('-') : [];
+
+            document.getElementById('childName').textContent = name;
+            document.getElementById('childTotalTime').textContent = totalTime;
+            document.getElementById('childID').textContent = id;
+            document.getElementById('childWhatsapp').textContent = whatsapp;
+            document.getElementById('childHealthCondition').textContent = health ? health : 'لا يوجد مشاكل صحية';
+            document.getElementById('childDisableDescription').textContent = disable ? disable : 'لا يوجد اعاقه';
+            document.getElementById('childParentsNote').textContent = parents ? parents : 'لا توجد ملاحظات';
+            document.getElementById('childSupervisorNote').textContent = supervisor ? supervisor : 'لا توجد ملاحظات';
+            document.getElementById('childBlackListReason').textContent = blacklist ? blacklist : 'لا يوجد';
+            document.getElementById('childEscortReason').textContent = escort;
+
+            addNotesToTable(notesArray);
+
+            var childsIdsList = childIds.split('-');
+
+            if (childsIdsList.includes(id.toString())) {
+                document.getElementById('childsaddbutton').style.display = 'none';
+                document.getElementById('childsremovebutton').style.display = 'block';
+            }
+            else {
+                document.getElementById('childsaddbutton').style.display = 'block';
+                document.getElementById('childsremovebutton').style.display = 'none';
+            }
+
+        }
+
+        // Function to add notes to the table
+        function addNotesToTable(notesArray) {
+            const tableBody = document.getElementById('notesTableBody');  // Get the table body
+
+            // Clear any existing rows in the table
+            tableBody.innerHTML = '';
+
+            // Check if there are no notes
+            if (notesArray.length === 0) {
+                // Add a row with the message "لا يوجد ملاحظات سابقة"
+                const row = document.createElement('tr');  // Create a new row
+
+                const cell = document.createElement('td');  // Create a new cell for the message
+                cell.colSpan = 1;  // If you want to span across the entire table, you can set the colspan attribute
+                cell.textContent = 'لا يوجد ملاحظات سابقة';  // Set the message
+                row.appendChild(cell);  // Append the cell to the row
+
+                tableBody.appendChild(row);  // Append the row to the table body
+            } else {
+                // Loop through each note and create a new row in the table
+                notesArray.forEach(note => {
+                    const row = document.createElement('tr');  // Create a new row
+
+                    const noteCell = document.createElement('td');  // Create a new cell for the note
+                    noteCell.textContent = note;  // Set the cell's text to the note
+                    row.appendChild(noteCell);  // Append the note cell to the row
+
+                    tableBody.appendChild(row);  // Append the row to the table body
+                });
+            }
+        }
+
+        // Function to update the hidden input when adding/removing IDs
+        function updateChildIds() {
+            document.getElementById("childIds").value = childIds;
+            childernnumber = childIds.split('-').filter(id => id !== "").length;
+            document.getElementById('totalchildern').textContent = childernnumber;
+        }
+
+        // Handle the "Add" button click
+        var addButtons = document.querySelectorAll(".add-btn");
+        addButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                // Get the childId from the modal details
+                var childId = document.getElementById('childID').textContent.trim();
+
+                // Check if the ID is not already in the list
+                if (childIds) {
+                    var idsArray = childIds.split('-');
+                    if (!idsArray.includes(childId)) {
+                        childIds += (childIds ? '-' : '') + childId; // Add the new ID
+                    }
+                } else {
+                    childIds = childId; // First ID to be added
+                }
+
+                // Update the hidden input with the new childIds value
+                updateChildIds();
+
+                document.getElementById(`details-${childId}`).classList.add('selected');
+                document.getElementById(`cont-${childId}`).classList.remove('Non-selected');
+                showTotal();
+                // Hide the "Add" button and show the "Remove" button
+                this.style.display = 'none';
+                this.nextElementSibling.style.display = 'inline-block';
+            });
+        });
+
+        // Handle the "Remove" button click
+        var removeButtons = document.querySelectorAll(".remove-btn");
+        removeButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                // Get the childId from the modal details
+                var childId = document.getElementById('childID').textContent.trim();
+
+                // Remove the child ID from the childIds string
+                var idsArray = childIds.split('-');
+                var index = idsArray.indexOf(childId);
+                if (index > -1) {
+                    idsArray.splice(index, 1); // Remove the ID
+                }
+                childIds = idsArray.join('-'); // Rebuild the childIds string
+
+                // Update the hidden input with the new childIds value
+                updateChildIds();
+
+                document.getElementById(`details-${childId}`).classList.remove('selected');
+                document.getElementById(`cont-${childId}`).classList.add('Non-selected');
+                showTotal();
+                // Show the "Add" button and hide the "Remove" button
+                this.style.display = 'none';
+                this.previousElementSibling.style.display = 'inline-block';
+            });
+        });
+
+    </script>
+
+}
+
+<!-- for the check out -->
+<script>
+    document.getElementById("checkoutToggle").addEventListener("click", function () {
+        document.getElementById("checkoutOptions").style.display = "block";
+        document.getElementById("removeCheckout").style.display = "block";
+
+        document.getElementById("paymentMethod").required = true;
+        document.getElementById("checkOutTime").required = true;
+
+        document.getElementById("checkoutToggle").style.display = "none";
+    });
+
+    document.getElementById("removeCheckout").addEventListener("click", function () {
+        document.getElementById("checkoutOptions").style.display = "none";
+        document.getElementById("removeCheckout").style.display = "none";
+
+        document.getElementById("paymentMethod").value = '';
+        document.getElementById("checkOutTime").value = '';
+
+        document.getElementById("paymentMethod").required = false;
+        document.getElementById("checkOutTime").required = false;
+
+        document.getElementById("checkoutToggle").style.display = "block";
+        intervalPrice = 0;
+        showTotal();
+    });
+</script>
+
+<!-- for children search -->
+<script>
+    function filterChildren() {
+        const searchText = document.getElementById('searchBar').value.toLowerCase();
+        const cards = document.querySelectorAll('.Non-selected');
+
+        cards.forEach(card => {
+            card.remove();
+        });
+
+        if(searchText.trim())
+            connection.invoke("ChildrenSearch", searchText, childIds);
+    }
+
+   
+</script>
+
+<!-- for product search -->
+<script>
+    function filterProduct() {
+        const searchText = document.getElementById('searchBarProduct').value.toLowerCase();
+        const cards = document.querySelectorAll('.Not-Selected-product');
+
+        cards.forEach(card => {            
+            card.remove();
+        });
+
+        const productsIds = document.getElementById("selectedProducts").value;
+         if (searchText.trim())
+             connection.invoke("ProductSearch", searchText, productsIds);
+    }
+</script>
+
+<script>
+      document.getElementById('printButton').addEventListener('click', function() {
+      window.print();  // This will trigger the browser's print dialog
+    });
+</script>
+
+
+<style>
+    /* Print media styling */
+    @@media print {
+        .print-pay {
+            display: block !important;
+        }
+
+        .print {
+            display: flex !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+        /* Hide everything except the main bill container */
+        body * {
+            visibility: hidden;
+        }
+        /* Remove page breaks and prevent splitting content across pages */
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+
+        .ticket-container, .ticket-container * {
+            visibility: visible;
+        }
+
+        .ticket-container {
+          /*   visibility: visible !important;
+            display: block !important; */
+            border: 2px solid #444; /* Dark border for a distinct ticket frame */
+            border-radius: 10px; /* Rounded corners for a modern feel */
+            background-color: #f9f9f9; /* Subtle light background for contrast */
+            padding: 20px; /* Add spacing inside the ticket */
+            margin: 20px auto; /* Center the ticket */
+            max-width: 600px; /* Limit width for readability */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation */
+        }
+
+        .ticket-header {
+            text-align: center; /* Center the text in the header */
+            border-bottom: 2px solid #444; /* Separator line below the header */
+            margin-bottom: 20px; /* Space below the header */
+            padding-bottom: 10px; /* Padding below the header */
+        }
+
+            .ticket-header h1 {
+                font-size: 24px; /* Main title font size */
+                color: #333; /* Dark gray for text */
+                margin: 0; /* Remove extra margin */
+            }
+
+            .ticket-header p {
+                font-size: 14px; /* Subtitle font size */
+                color: #666; /* Lighter gray for less emphasis */
+            }
+
+        .ticket-details p {
+            font-size: 16px; /* Font size for details */
+            margin: 5px 0; /* Spacing between details */
+        }
+
+        .ticket-details span {
+            font-weight: bold; /* Highlight labels */
+            color: #333; /* Darker gray for emphasis */
+        }
+
+        .children-list h3 {
+            font-size: 18px; /* Subheading size for children section */
+            color: #444; /* Slightly darker gray for prominence */
+            margin-bottom: 15px; /* Add spacing below the heading */
+        }
+
+        .children-list ul {
+            list-style-type: none; /* Remove bullets from list */
+            padding: 0; /* Remove padding from list */
+        }
+
+            .children-list ul li {
+                font-size: 16px; /* Font size for child names */
+                margin: 5px 0; /* Space between names */
+                color: #555; /* Medium gray for names */
+            }
+
+        .footer {
+            text-align: center; /* Center footer text */
+            margin-top: 20px; /* Space above the footer */
+            font-size: 14px; /* Smaller font size for footer */
+            color: #888; /* Light gray for footer text */
+        }
+    }
+</style>
+
+<!-- for the price -->
+<style>
+    .total-price-display {
+        font-size: 1.5em;
+        font-weight: bold;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        width: fit-content;
+        margin-top: 5px;
+        display: inline-block;
+    }
+
+        /* Adding subtle shadow and scaling on hover for additional emphasis */
+        .total-price-display:hover {
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            transform: scale(1.05);
+            transition: all 0.2s ease-in-out;
+        }
+</style>
+
+<!-- for the childern and products cards -->
+<style>
+    .product-cards-container, .child-cards-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .product-card, .child-card {
+        width: 200px;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+    }
+
+        .product-card:hover, .child-card:hover {
+            transform: scale(1.05);
+        }
+
+    .regular-card {
+        background-color: #f8f9fa;
+    }
+
+    .blacklisted-card {
+        background-color: #ffe6e6;
+        border: 2px solid #ff4d4d;
+    }
+
+    .HaveDebt-card {
+        background-color: #fff3cd; /* Light yellow-orange background */
+        border: 2px solid #ffc107; /* Bright orange border */
+    }
+
+    .HaveDebt-BlackListed-card {
+        background-color: #fff3cd; /* Light yellow-orange background */
+        border: 2px solid #ff4d4d;
+    }
+
+
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .image-wrapper {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .product-image, .child-image {
+        width: auto;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-name, .child-name {
+        margin: 10px 0 5px;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .product-price, .child-status {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+
+    .quantity-controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    /* Responsive Styling */
+    @@media (max-width: 768px) {
+        .product-card, .child-card {
+            width: 100%;
+        }
+    }
+
+    .selected {
+        border: 2px solid blue !important;
+    }
+</style>
+
+<style>
+    .price-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+        width: 100%;
+        background: #f9f9f9; /* Light background */
+        border: 1px solid #ddd; /* Subtle border */
+        border-radius: 8px; /* Rounded corners */
+        padding: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow for card effect */
+        margin-top: 20px;
+    }
+
+    .price-item {
+        flex: 1; /* Each item takes equal space */
+        min-width: 120px; /* Prevent items from shrinking too much */
+        text-align: center;
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+        .price-item span {
+            font-weight: bold;
+            color: #435ebe; /* Blue color for values */
+        }
+
+        .price-item p {
+            margin: 0;
+            font-size: 14px;
+            color: #333; /* Dark text for labels */
+        }
+</style>
+
+
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+<!-- Bootstrap CSS -->
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">

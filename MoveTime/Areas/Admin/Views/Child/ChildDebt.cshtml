@@ -1,0 +1,61 @@
+﻿@using Models.ViewModels
+@using Utility
+@model IEnumerable<ChildDebt>
+@{
+    ViewData["Title"] = "Pay All Debts";
+
+    int totalAmount = Model.Sum(debt => debt.Amount);
+}
+
+<div class="container">
+    <h2 class="text-center my-4">سداد الديون</h2>
+
+    <!-- Payment Method Form -->
+    <form asp-action="PayDebt" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ChildId" value="@ViewData["ChildId"]" />
+        <input type="hidden" name="Redirect" value="@ViewData["where"]" />
+
+        <div class="card mb-4 p-3">
+            <h5>طريقة الدفع</h5>
+            <div class="form-group mb-3">
+                <label for="PaymentMethod" class="form-label">اختر طريقة الدفع</label>
+                <select name="PaymentMethod" id="PaymentMethod" class="form-select" required>
+                    <option value="">--اختر--</option>
+                    @foreach(var payment in Enum.GetValues(typeof(PaymentMethod)).Cast<PaymentMethod>().ToList())
+                    {
+                        if (payment == PaymentMethod.دین) continue;
+                        <option value="@payment">@payment</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Total Amount Display -->
+            <div class="form-group">
+                <label>المبلغ الإجمالي:</label>
+                <span class="fs-4 fw-bold">@totalAmount ر.س</span>
+            </div>
+        </div>
+
+        <!-- Debt Cards Display -->
+        <div class="row">
+            @foreach (var debt in Model)
+            {
+                <div class="col-md-4">
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">@debt.DebtName</h5>
+                            <p class="card-text">التاريخ: @debt.DebtDate</p>
+                            <p class="card-text">المبلغ: @debt.Amount ر.س</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Submit Button -->
+        <div class="d-flex justify-content-center mt-4">
+            <button type="submit" class="btn alert-primary px-5">دفع جميع الديون</button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,167 @@
+﻿@using Utility
+@{
+    var currentController = Context.Request.RouteValues["controller"]?.ToString();
+    var currentAction = Context.Request.RouteValues["action"]?.ToString();
+    var whichshift = TempData["whichShiftAdminPartial"] as string;
+    var addWhich = TempData["AddWhich"] as string;
+}
+
+<div id="sidebar" class="active">
+    <div class="sidebar-wrapper active">
+        <div class="sidebar-header">
+            <div class="d-flex justify-content-between">
+                <div class="logo">
+                    <a asp-area="Customer" asp-controller="Home" asp-action="Index" class="d-flex align-items-center">
+                        <img src="~/favicon.png" alt="Logo" class="img-fluid me-2" style="max-width: 90px; height: auto;">
+                        <h5 class="font-bold mb-0">وقت الحركة</h5>
+                    </a>
+                </div>
+                <div class="toggler">
+                    <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-menu">
+            <ul class="menu">
+                <li class="sidebar-title">القائمة</li>
+
+                <li class="sidebar-item">
+                    <a asp-area="Customer" asp-controller="Home" asp-action="Index" class='sidebar-link'>
+                        <i class="bi bi bi-house-fill"></i>
+                        <span>الرئيسية</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item @(currentController == "Dashboard" && currentAction == "Index" ? "active" : "" )">
+                    <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class='sidebar-link'>
+                        <i class="bi bi-grid-fill"></i>
+                        <span>لوحة التحكم</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-item has-sub @(currentController == "CheckInOut" ? "active" : "" )">
+                    <a href="#" class='sidebar-link'>
+                        <i class="bi bi-door-open"></i> <!-- Updated to door open icon for CheckIn/Out -->
+                        <span>تسجيل دخول / خروج</span>
+                    </a>
+                    <ul class="submenu">
+                        <li class="submenu-item @(currentController == "CheckInOut" && currentAction == "CheckIn" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="CheckInOut" asp-action="CheckIn">
+                                <i class="bi bi-check-circle"></i> <!-- Icon updated to check-circle for CheckIn -->
+                                تسجيل دخول
+                            </a>
+                        </li>
+                        <li class="submenu-item @(currentController == "CheckInOut" && currentAction == "ChooseSubscribedChild" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="CheckInOut" asp-action="ChooseSubscribedChild">
+                                <i class="bi bi-person-badge"></i> <!-- Icon updated to person-badge for ChooseSubscribedChild -->
+                                تسجيل دخول بأشتراك
+                            </a>
+                        </li>
+                        <li class="submenu-item @(currentController == "CheckInOut" && currentAction == "GetLoggedIn" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="CheckInOut" asp-action="GetLoggedIn">
+                                <i class="bi bi-person-check"></i> <!-- Icon updated to person-check for GetLoggedIn -->
+                                عرض الأطفال المسجلين الآن
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="sidebar-item has-sub @(currentController == "Shift" ? "active" : "" )">
+                    <a href="#" class='sidebar-link'>                        
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-currency-exchange" viewBox="0 0 16 16">
+                            <path d="M0 5a5 5 0 0 0 4.027 4.905 6.5 6.5 0 0 1 .544-2.073C3.695 7.536 3.132 6.864 3 5.91h-.5v-.426h.466V5.05q-.001-.07.004-.135H2.5v-.427h.511C3.236 3.24 4.213 2.5 5.681 2.5c.316 0 .59.031.819.085v.733a3.5 3.5 0 0 0-.815-.082c-.919 0-1.538.466-1.734 1.252h1.917v.427h-1.98q-.004.07-.003.147v.422h1.983v.427H3.93c.118.602.468 1.03 1.005 1.229a6.5 6.5 0 0 1 4.97-3.113A5.002 5.002 0 0 0 0 5m16 5.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0m-7.75 1.322c.069.835.746 1.485 1.964 1.562V14h.54v-.62c1.259-.086 1.996-.74 1.996-1.69 0-.865-.563-1.31-1.57-1.54l-.426-.1V8.374c.54.06.884.347.966.745h.948c-.07-.804-.779-1.433-1.914-1.502V7h-.54v.629c-1.076.103-1.808.732-1.808 1.622 0 .787.544 1.288 1.45 1.493l.358.085v1.78c-.554-.08-.92-.376-1.003-.787zm1.96-1.895c-.532-.12-.82-.364-.82-.732 0-.41.311-.719.824-.809v1.54h-.005zm.622 1.044c.645.145.943.38.943.796 0 .474-.37.8-1.02.86v-1.674z" />
+                        </svg> <!-- Main icon for "Prices" -->
+                        <span>الاسعار</span>
+                    </a>
+                    <ul class="submenu">                   
+                        <li class="submenu-item @(currentController == "Shift" && currentAction == "ShowPrices" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="Shift" asp-action="ShowPrices">
+                                <i class="bi bi-list"></i> <!-- Icon for document -->
+                                قائمة الأسعار
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="sidebar-item has-sub @(currentController == "Subscription" ? "active" : "" )">
+                    <a href="#" class='sidebar-link'>
+                        <i class="bi bi-card-list"></i> <!-- Updated icon for subscriptions -->
+                        <span>الاشتراكات</span>
+                    </a>
+                    <ul class="submenu">                       
+                        <li class="submenu-item @(currentController == "Subscription" && currentAction == "ViewSubscription" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="Subscription" asp-action="ViewSubscriptions">
+                                <i class="bi bi-eye"></i> <!-- Icon for viewing subscriptions -->
+                                عرض الاشتراكات
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="sidebar-item has-sub @(currentController == "Child" ? "active" : "" )">
+                    <a href="#" class='sidebar-link'>
+                        <i class="bi bi-person-lines-fill"></i> <!-- Icon for children -->
+                        <span>الاطفال</span>
+                    </a>
+                    <ul class="submenu">
+                        <li class="submenu-item @(currentController == "Child" && currentAction == "NewChild" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="Child" asp-action="NewChild">
+                                <i class="bi bi-person-plus-fill"></i> <!-- Icon for adding a new child -->
+                                طفل جديد
+                            </a>
+                        </li>
+                        <li class="submenu-item @(currentController == "Child" && currentAction == "WhichChild" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="Child" asp-action="WhichChild">
+                                <i class="bi bi-credit-card-fill"></i> <!-- Icon for subscription (credit card) -->
+                                اشتراك الطفل في خطة
+                            </a>
+                        </li>
+                        <li class="submenu-item @(currentController == "Child" && currentAction == "WhichChildFile" ? "active" : "" )">
+                            <a asp-area="Admin" asp-controller="Child" asp-action="WhichChildFile">
+                                <i class="bi bi-person-circle"></i> <!-- Icon for child (person) -->
+                                ملف الطفل
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+               
+                <li class="sidebar-item has-sub @(currentController == "Dashboard" && currentAction == "AddEditDocument" ? "active" : "" )">
+                    <a href="#" class='sidebar-link'>
+                        <i class="bi bi-file-earmark"></i> <!-- Changed to a file icon -->
+                        <span>الملفات</span>
+                    </a>
+                    <ul class="submenu">                      
+                        <li class="submenu-item">                           
+                            <a id="DocDownLoad" href="javascript:void(0)" download>
+                                <i class="bi bi-cloud-download"></i> <!-- Changed to upload icon -->
+                                تحميل أخلاء الطرف
+                            </a>
+                        </li>
+                    </ul>
+                </li>      
+
+            </ul>
+        </div>
+        <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
+    </div>
+</div>
+
+<script>
+    // Create a connection to the hub
+    const connectionrightbar = new signalR.HubConnectionBuilder()
+        .withUrl("/docHub")
+        .build();
+
+    // Function that the hub can call to broadcast price
+    connectionrightbar.on("DocLink", function (link) {
+        document.getElementById("DocDownLoad").href = link;
+    });
+
+    connectionrightbar.start()
+        .then(function () {
+            connectionrightbar.invoke("GetDocLink");
+        })
+        .catch(function (err) {
+            console.error("Error while starting connection: " + err);
+        });
+</script>

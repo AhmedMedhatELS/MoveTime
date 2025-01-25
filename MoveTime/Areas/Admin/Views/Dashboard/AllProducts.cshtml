@@ -1,0 +1,187 @@
+﻿@model Models.ViewModels.AdminProductview
+@{
+    ViewData["Title"] = "تحكم فى السلع";
+}
+
+<div class="container mt-0">
+    <!-- Status Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["SuccessMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">
+            <span class="me-auto">@TempData["ErrorMessage"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Add Product Form -->
+    <div class="card mb-2">
+        <div class="card-header">
+            <h4>إضافة منتج جديد</h4>
+        </div>
+        <div class="card-body mt-5">
+            <form asp-action="AddProduct" method="post" enctype="multipart/form-data">
+                <div class="row mb-3">
+                    <!-- Image Upload -->
+                    <div class="col-md-4 text-center">
+                        <img id="imagePreview" src="~/images/Products/default-product.png" alt="Product Image" class="img-fluid" style="max-height: 200px; width: 100%; height: 100%; object-fit: contain;" />
+                        <div class="mt-2">
+                            <input type="file" id="imageInput" name="Imagefile" class="form-control" accept=".jpg,.jpeg,.png" required data-val="true" data-val-required="يرجى اختيار صورة للمنتج" />
+                            <span asp-validation-for="Imagefile" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Product Details -->
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">اسم المنتج</label>
+                            <input asp-for="Name" class="form-control" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Price" class="form-label">السعر</label>
+                            <input asp-for="Price" class="form-control" type="number" required />
+                            <span asp-validation-for="Price" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Quantity" class="form-label">الكمية</label>
+                            <input asp-for="Quantity" class="form-control" type="number" />
+                            <span asp-validation-for="Quantity" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="alert alert-primary">إضافة المنتج</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="mb-5">
+        <input type="text" id="searchInput" class="form-control" placeholder="ابحث عن منتج..." />
+    </div>
+
+    <!-- Product List -->
+    <div class="row" id="productList">
+        @foreach (var product in Model.Products)
+        {
+            Model.Name = product.Name;
+            Model.Price = product.Price;
+            Model.Quantity = product.Quantity;
+
+            <div class="col-md-4 mb-4 product-card" data-name="@product.Name">
+                <div class="card">
+                    <img src="~/images/Products/@product.ImageName" class="card-img-top img-fluid" style="max-height: 200px; width: 100%; height: 100%; object-fit: contain;" />
+                    <div class="card-body">
+                        <form asp-action="EditProduct" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="ProductId" value="@product.ProductId" />
+
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label">اسم المنتج</label>
+                                <input asp-for="Name" class="form-control" required />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Price" class="form-label">السعر</label>
+                                <input asp-for="Price" class="form-control" type="number" required />
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Quantity" class="form-label">الكمية</label>
+                                <input asp-for="Quantity" class="form-control" type="number" />
+                                <span asp-validation-for="Quantity" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">صورة المنتج</label>
+                                <input type="file" name="Imagefile" class="form-control" accept=".jpg,.jpeg,.png" onchange="previewImage(this)" />                                
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="alert alert-warning">تعديل</button>
+                                <button type="button" class="alert alert-danger" onclick="confirmDelete(@product.ProductId)">حذف</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+                // Image preview and file type validation in Arabic
+            document.getElementById('imageInput').addEventListener('change', function (e) {
+                    const file = e.target.files[0];
+            const allowedTypes = ['image/jpeg', 'image/png'];
+
+            if (file && allowedTypes.includes(file.type)) {
+                        const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                        };
+            reader.readAsDataURL(file);
+                    } else {
+                alert('يرجى اختيار صورة بصيغة .jpg أو .png فقط.');
+            e.target.value = ''; // Clear the file input
+                    }
+                });
+        // Image preview for the file input
+        function previewImage(input) {
+            const file = input.files[0];
+            const allowedTypes = ['image/jpeg', 'image/png'];
+
+            if (file && allowedTypes.includes(file.type)) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    // Find the corresponding image preview element and update its source
+                    const card = input.closest('.card');
+                    const previewImage = card.querySelector('.card-img-top');
+                    previewImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('يرجى اختيار صورة بصيغة .jpg أو .png فقط.');
+                input.value = ''; // Clear the file input
+            }
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            const products = document.querySelectorAll('.product-card');
+
+            products.forEach(product => {
+                const title = product.getAttribute('data-name').toLowerCase(); // Get the name from the data attribute
+                console.log(title);
+                if (title.includes(searchTerm)) {
+                    product.style.display = ''; // Show the product card if it matches
+                } else {
+                    product.style.display = 'none'; // Hide if it doesn't match
+                }
+            });
+        });
+
+        // Confirm delete function
+        function confirmDelete(productId) {
+            if (confirm("هل أنت متأكد أنك تريد حذف هذا المنتج؟")) {
+                // Redirect to delete action
+                window.location.href = `@Url.Action("DeleteProduct")/${productId}`;
+            }
+        }
+    </script>
+}
